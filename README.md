@@ -33,3 +33,31 @@ pnpm dev
 Next.js 14 (App Router) · FastAPI · PostgreSQL · SQLAlchemy async · Alembic · NextAuth · Dexie (IndexedDB) · Tailwind + shadcn/ui · Zustand · TanStack Query.
 
 See [context.md](./context.md) for the full spec.
+
+## Deploying the Web App (Vercel)
+
+This repo is a monorepo. The Next.js app is in `apps/web` and the FastAPI app is in `apps/api`.
+
+1. Deploy `apps/web` to Vercel.
+2. Deploy `apps/api` to a Python host (Render, Fly.io, Railway, etc.).
+3. Point the web app to the deployed API URL.
+
+### Vercel project settings
+
+- Root Directory: `apps/web` (recommended)
+- Install Command: `pnpm install --frozen-lockfile`
+- Build Command: `pnpm build`
+
+If your Vercel project uses repo root instead, root `pnpm build` now forwards to the web build.
+
+### Required Vercel environment variables
+
+- `NEXTAUTH_URL=https://<your-web-domain>`
+- `NEXTAUTH_SECRET=<long-random-secret>`
+- `NEXT_PUBLIC_API_URL=https://<your-api-domain>`
+
+### Required API environment update
+
+On the API deployment, set `CORS_ORIGINS` to include your Vercel domain(s), for example:
+
+`CORS_ORIGINS=https://your-app.vercel.app,https://your-custom-domain.com`
