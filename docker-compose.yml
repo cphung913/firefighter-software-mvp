@@ -1,0 +1,26 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: vfd-postgres
+    environment:
+      POSTGRES_USER: vfd
+      POSTGRES_PASSWORD: vfd
+      POSTGRES_DB: vfd
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vfd -d vfd"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7
+    container_name: vfd-redis
+    ports:
+      - "6379:6379"
+
+volumes:
+  pgdata:
