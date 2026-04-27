@@ -54,7 +54,7 @@ If your Vercel project uses repo root instead, root `pnpm build` now forwards to
 
 - `NEXTAUTH_URL=https://<your-web-domain>`
 - `NEXTAUTH_SECRET=<long-random-secret>`
-- `NEXT_PUBLIC_API_URL=https://<your-api-domain>`
+- `NEXT_PUBLIC_API_URL=https://<your-api-domain>` (origin only, no `/api` or `/api/v1` suffix)
 
 ### Required API environment update
 

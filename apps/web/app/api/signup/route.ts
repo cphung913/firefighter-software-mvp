@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+function getApiBaseUrl() {
+  const configured = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+  const withoutTrailingSlash = configured.replace(/\/+$/, "");
+  return withoutTrailingSlash.replace(/\/api\/v1$/i, "");
+}
+
+const API_URL = getApiBaseUrl();
 
 export async function POST(req: NextRequest) {
   const body = await req.json();

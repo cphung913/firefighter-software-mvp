@@ -1,7 +1,13 @@
 import type { AuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+function getApiBaseUrl() {
+  const configured = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+  const withoutTrailingSlash = configured.replace(/\/+$/, "");
+  return withoutTrailingSlash.replace(/\/api\/v1$/i, "");
+}
+
+const API_URL = getApiBaseUrl();
 
 export const authOptions: AuthOptions = {
   session: { strategy: "jwt" },
