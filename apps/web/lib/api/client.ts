@@ -1,6 +1,6 @@
 import { getSession } from "next-auth/react";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+const API_PROXY_PREFIX = "/api/proxy";
 
 function errorMessage(status: number, body: unknown): string {
   if (
@@ -32,7 +32,11 @@ export async function apiFetch<T>(
   if (session?.accessToken) {
     headers.set("Authorization", `Bearer ${session.accessToken}`);
   }
-  const res = await fetch(`${API_URL}${path}`, { ...init, headers });
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  const res = await fetch(`${API_PROXY_PREFIX}${normalizedPath}`, {
+    ...init,
+    headers,
+  });
   if (!res.ok) {
     let body: unknown = null;
     try {
