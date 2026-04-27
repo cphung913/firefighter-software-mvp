@@ -2,7 +2,7 @@
 
 import { Suspense, useState } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -26,7 +26,6 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 function LoginForm() {
-  const router = useRouter();
   const search = useSearchParams();
   const callbackUrl = search.get("callbackUrl") ?? "/dashboard";
   const [error, setError] = useState<string | null>(null);
@@ -43,13 +42,15 @@ function LoginForm() {
       email: values.email,
       password: values.password,
       redirect: false,
+      callbackUrl,
     });
     if (res?.error) {
       setError("Invalid email or password.");
       return;
     }
-    router.push(callbackUrl);
-    router.refresh();
+
+    // Force a full navigation so middleware sees the fresh session cookie.
+    window.location.assign(res?.url ?? callbackUrl);
   });
 
   return (
