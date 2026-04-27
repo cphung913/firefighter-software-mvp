@@ -58,6 +58,20 @@ export const ChecklistBootstrapSchema = z.object({
 });
 export type ChecklistBootstrap = z.infer<typeof ChecklistBootstrapSchema>;
 
+export const DepartmentRosterUserSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  role: z.string(),
+  badge_number: z.string().nullable(),
+});
+export type DepartmentRosterUser = z.infer<typeof DepartmentRosterUserSchema>;
+
+export const IncidentBootstrapSchema = z.object({
+  apparatus: z.array(ApparatusSummarySchema),
+  users: z.array(DepartmentRosterUserSchema),
+});
+export type IncidentBootstrap = z.infer<typeof IncidentBootstrapSchema>;
+
 // ===== Auth =====
 
 export const SignupRequestSchema = z.object({

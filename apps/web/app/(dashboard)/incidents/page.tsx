@@ -1,10 +1,5 @@
-import { PageStub } from "@/components/page-stub";
+import { IncidentsWorkspace } from "@/components/incidents/incidents-workspace";
 
 export default function IncidentsPage() {
-  return (
-    <PageStub
-      title="Incidents"
-      description="NERIS-ready incident logging. Works offline."
-    />
-  );
+  return <IncidentsWorkspace />;
 }

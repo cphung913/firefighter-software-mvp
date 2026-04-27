@@ -1,5 +1,8 @@
 import Dexie, { type Table } from "dexie";
-import type { ChecklistTemplateItem } from "@vfd/shared-types";
+import type {
+  ChecklistTemplateItem,
+  DepartmentRosterUser,
+} from "@vfd/shared-types";
 
 export type SyncStatus = "pending" | "syncing" | "synced" | "conflict";
 
@@ -24,6 +27,21 @@ export interface IncidentRecord extends SyncMeta {
   raw_data?: Record<string, unknown>;
 }
 
+export interface IncidentDraftRecord {
+  id: string;
+  incident_number: string;
+  incident_type?: string | null;
+  location_address?: string | null;
+  location_lat?: string | null;
+  location_lng?: string | null;
+  alarm_time?: string | null;
+  on_scene_time?: string | null;
+  cleared_time?: string | null;
+  narrative?: string | null;
+  raw_data: Record<string, unknown>;
+  updated_at: string;
+}
+
 export interface ChecklistCompletionRecord extends SyncMeta {
   template_id?: string | null;
   apparatus_id?: string | null;
@@ -37,6 +55,10 @@ export interface ChecklistTemplateRecord {
   type: string;
   items: ChecklistTemplateItem[];
   updated_at: string;
+  cached_at: string;
+}
+
+export interface DepartmentUserRecord extends DepartmentRosterUser {
   cached_at: string;
 }
 
@@ -95,8 +117,10 @@ export interface SyncStateRecord {
 
 export class VfdLocalDb extends Dexie {
   incidents!: Table<IncidentRecord, string>;
+  incident_drafts!: Table<IncidentDraftRecord, string>;
   checklist_completions!: Table<ChecklistCompletionRecord, string>;
   checklist_templates!: Table<ChecklistTemplateRecord, string>;
+  department_users!: Table<DepartmentUserRecord, string>;
   apparatus!: Table<ApparatusRecord, string>;
   ppe_items!: Table<PpeItemRecord, string>;
   scba_units!: Table<ScbaUnitRecord, string>;
@@ -119,6 +143,21 @@ export class VfdLocalDb extends Dexie {
       checklist_completions:
         "local_id, server_id, _sync_status, updated_at, completed_at, template_id, apparatus_id",
       checklist_templates: "id, type, updated_at, cached_at",
+      apparatus:
+        "local_id, server_id, _sync_status, updated_at, unit_id, service_status",
+      ppe_items: "local_id, server_id, _sync_status, updated_at",
+      scba_units: "local_id, server_id, _sync_status, updated_at",
+      pending_mutations: "++id, table, local_id, client_timestamp",
+      sync_state: "key",
+    });
+    this.version(3).stores({
+      incidents:
+        "local_id, server_id, _sync_status, updated_at, incident_number, incident_type",
+      incident_drafts: "id, updated_at, incident_number",
+      checklist_completions:
+        "local_id, server_id, _sync_status, updated_at, completed_at, template_id, apparatus_id",
+      checklist_templates: "id, type, updated_at, cached_at",
+      department_users: "id, name, role, cached_at",
       apparatus:
         "local_id, server_id, _sync_status, updated_at, unit_id, service_status",
       ppe_items: "local_id, server_id, _sync_status, updated_at",

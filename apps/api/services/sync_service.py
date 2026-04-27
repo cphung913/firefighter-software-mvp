@@ -144,6 +144,8 @@ async def apply_push(
         clean = _filter_assignable(model_cls, mutation.data)
         if mutation.table == "checklist_completions" and "completed_by" not in clean:
             clean["completed_by"] = user_id
+        if mutation.table == "incidents" and "created_by" not in clean:
+            clean["created_by"] = user_id
 
         if existing is None:
             new_obj = model_cls(  # type: ignore[call-arg]
