@@ -1,10 +1,5 @@
-import { PageStub } from "@/components/page-stub";
+import { SettingsWorkspace } from "@/components/settings/settings-workspace";
 
 export default function SettingsPage() {
-  return (
-    <PageStub
-      title="Settings"
-      description="Department, personnel, and integration preferences."
-    />
-  );
+  return <SettingsWorkspace />;
 }

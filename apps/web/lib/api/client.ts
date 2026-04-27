@@ -2,9 +2,21 @@ import { getSession } from "next-auth/react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
+function errorMessage(status: number, body: unknown): string {
+  if (
+    body &&
+    typeof body === "object" &&
+    "detail" in body &&
+    typeof body.detail === "string"
+  ) {
+    return body.detail;
+  }
+  return `API ${status}`;
+}
+
 export class ApiError extends Error {
   constructor(public status: number, public body: unknown) {
-    super(`API ${status}`);
+    super(errorMessage(status, body));
   }
 }
 
@@ -14,7 +26,9 @@ export async function apiFetch<T>(
 ): Promise<T> {
   const session = await getSession();
   const headers = new Headers(init.headers);
-  headers.set("Content-Type", "application/json");
+  if (!(init.body instanceof FormData) && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
   if (session?.accessToken) {
     headers.set("Authorization", `Bearer ${session.accessToken}`);
   }
