@@ -13,10 +13,11 @@ otherwise the client wins.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from typing import Any
 
-from sqlalchemy import and_, select
+from sqlalchemy import Date, DateTime, and_, select
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.apparatus import Apparatus
@@ -62,19 +63,35 @@ def _serialize(model: Base) -> dict[str, Any]:
         value = getattr(model, column.name)
         if isinstance(value, datetime):
             value = value.isoformat()
+        elif isinstance(value, date):
+            value = value.isoformat()
         elif isinstance(value, uuid.UUID):
             value = str(value)
         out[column.name] = value
     return out
 
 
+def _coerce_value(column_type: Any, value: Any) -> Any:
+    if value is None:
+        return None
+    if isinstance(column_type, DateTime) and isinstance(value, str):
+        normalized = value.replace("Z", "+00:00")
+        return datetime.fromisoformat(normalized)
+    if isinstance(column_type, Date) and isinstance(value, str):
+        return date.fromisoformat(value)
+    if isinstance(column_type, PG_UUID) and isinstance(value, str):
+        return uuid.UUID(value)
+    return value
+
+
 def _filter_assignable(model_cls: type[Base], data: dict[str, Any]) -> dict[str, Any]:
-    valid = {c.name for c in model_cls.__table__.columns}  # type: ignore[attr-defined]
-    return {
-        k: v
-        for k, v in data.items()
-        if k in valid and k not in PROTECTED_FIELDS
-    }
+    columns = {c.name: c for c in model_cls.__table__.columns}  # type: ignore[attr-defined]
+    out: dict[str, Any] = {}
+    for key, value in data.items():
+        if key not in columns or key in PROTECTED_FIELDS:
+            continue
+        out[key] = _coerce_value(columns[key].type, value)
+    return out
 
 
 async def apply_push(
@@ -125,6 +142,8 @@ async def apply_push(
             continue
 
         clean = _filter_assignable(model_cls, mutation.data)
+        if mutation.table == "checklist_completions" and "completed_by" not in clean:
+            clean["completed_by"] = user_id
 
         if existing is None:
             new_obj = model_cls(  # type: ignore[call-arg]

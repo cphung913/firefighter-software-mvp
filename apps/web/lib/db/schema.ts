@@ -1,4 +1,5 @@
 import Dexie, { type Table } from "dexie";
+import type { ChecklistTemplateItem } from "@vfd/shared-types";
 
 export type SyncStatus = "pending" | "syncing" | "synced" | "conflict";
 
@@ -28,6 +29,15 @@ export interface ChecklistCompletionRecord extends SyncMeta {
   apparatus_id?: string | null;
   completed_at?: string | null;
   responses?: Record<string, unknown>;
+}
+
+export interface ChecklistTemplateRecord {
+  id: string;
+  name: string;
+  type: string;
+  items: ChecklistTemplateItem[];
+  updated_at: string;
+  cached_at: string;
 }
 
 export interface ApparatusRecord extends SyncMeta {
@@ -86,6 +96,7 @@ export interface SyncStateRecord {
 export class VfdLocalDb extends Dexie {
   incidents!: Table<IncidentRecord, string>;
   checklist_completions!: Table<ChecklistCompletionRecord, string>;
+  checklist_templates!: Table<ChecklistTemplateRecord, string>;
   apparatus!: Table<ApparatusRecord, string>;
   ppe_items!: Table<PpeItemRecord, string>;
   scba_units!: Table<ScbaUnitRecord, string>;
@@ -98,6 +109,18 @@ export class VfdLocalDb extends Dexie {
       incidents: "local_id, server_id, _sync_status, updated_at",
       checklist_completions: "local_id, server_id, _sync_status, updated_at",
       apparatus: "local_id, server_id, _sync_status, updated_at",
+      ppe_items: "local_id, server_id, _sync_status, updated_at",
+      scba_units: "local_id, server_id, _sync_status, updated_at",
+      pending_mutations: "++id, table, local_id, client_timestamp",
+      sync_state: "key",
+    });
+    this.version(2).stores({
+      incidents: "local_id, server_id, _sync_status, updated_at",
+      checklist_completions:
+        "local_id, server_id, _sync_status, updated_at, completed_at, template_id, apparatus_id",
+      checklist_templates: "id, type, updated_at, cached_at",
+      apparatus:
+        "local_id, server_id, _sync_status, updated_at, unit_id, service_status",
       ppe_items: "local_id, server_id, _sync_status, updated_at",
       scba_units: "local_id, server_id, _sync_status, updated_at",
       pending_mutations: "++id, table, local_id, client_timestamp",

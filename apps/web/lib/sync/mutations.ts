@@ -1,6 +1,7 @@
 "use client";
 
 import { db, type Operation, type SyncTable } from "@/lib/db";
+import { useSyncStore } from "@/store/sync-store";
 
 export interface EnqueueArgs {
   table: SyncTable;
@@ -60,6 +61,8 @@ export async function enqueueMutation({
       });
     }
   );
+
+  useSyncStore.getState().setPendingCount(await db.pending_mutations.count());
 
   return id;
 }

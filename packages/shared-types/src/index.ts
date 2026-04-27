@@ -22,6 +22,42 @@ export const UserSchema = z.object({
 });
 export type User = z.infer<typeof UserSchema>;
 
+export const ApparatusSummarySchema = z.object({
+  id: z.string().uuid(),
+  local_id: z.string().nullable().optional(),
+  unit_id: z.string().nullable(),
+  type: z.string().nullable(),
+  year: z.number().nullable().optional(),
+  make: z.string().nullable().optional(),
+  model: z.string().nullable().optional(),
+  vin: z.string().nullable().optional(),
+  mileage: z.number().nullable().optional(),
+  service_status: z.string(),
+});
+export type ApparatusSummary = z.infer<typeof ApparatusSummarySchema>;
+
+export const ChecklistTemplateItemSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  description: z.string().nullable().optional(),
+});
+export type ChecklistTemplateItem = z.infer<typeof ChecklistTemplateItemSchema>;
+
+export const ChecklistTemplateSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  type: z.string(),
+  items: z.array(ChecklistTemplateItemSchema),
+  updated_at: z.string(),
+});
+export type ChecklistTemplate = z.infer<typeof ChecklistTemplateSchema>;
+
+export const ChecklistBootstrapSchema = z.object({
+  templates: z.array(ChecklistTemplateSchema),
+  apparatus: z.array(ApparatusSummarySchema),
+});
+export type ChecklistBootstrap = z.infer<typeof ChecklistBootstrapSchema>;
+
 // ===== Auth =====
 
 export const SignupRequestSchema = z.object({
