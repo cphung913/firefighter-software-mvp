@@ -72,6 +72,38 @@ export const IncidentBootstrapSchema = z.object({
 });
 export type IncidentBootstrap = z.infer<typeof IncidentBootstrapSchema>;
 
+export const PpeAssetSchema = z.object({
+  id: z.string().uuid(),
+  local_id: z.string().nullable().optional(),
+  item_type: z.string(),
+  serial_number: z.string().nullable().optional(),
+  assigned_to: z.string().uuid().nullable().optional(),
+  manufacture_date: z.string().nullable().optional(),
+  purchase_date: z.string().nullable().optional(),
+  last_inspection: z.string().nullable().optional(),
+  retired_at: z.string().nullable().optional(),
+});
+export type PpeAsset = z.infer<typeof PpeAssetSchema>;
+
+export const ScbaAssetSchema = z.object({
+  id: z.string().uuid(),
+  local_id: z.string().nullable().optional(),
+  serial_number: z.string().nullable().optional(),
+  manufacturer: z.string().nullable().optional(),
+  assigned_to: z.string().uuid().nullable().optional(),
+  cylinder_hydro_date: z.string().nullable().optional(),
+  regulator_service_date: z.string().nullable().optional(),
+});
+export type ScbaAsset = z.infer<typeof ScbaAssetSchema>;
+
+export const AssetBootstrapSchema = z.object({
+  apparatus: z.array(ApparatusSummarySchema),
+  ppe_items: z.array(PpeAssetSchema),
+  scba_units: z.array(ScbaAssetSchema),
+  users: z.array(DepartmentRosterUserSchema),
+});
+export type AssetBootstrap = z.infer<typeof AssetBootstrapSchema>;
+
 // ===== Auth =====
 
 export const SignupRequestSchema = z.object({

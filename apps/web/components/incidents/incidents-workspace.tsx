@@ -8,6 +8,7 @@ import {
   CloudOff,
   Crosshair,
   FileText,
+  FileOutput,
   History,
   Loader2,
   MapPin,
@@ -35,6 +36,7 @@ import type {
   IncidentRecord,
 } from "@/lib/db";
 import { db } from "@/lib/db";
+import { printIncidentPdf } from "@/lib/incidents/export";
 import { hydrateIncidentBootstrap } from "@/lib/incidents/bootstrap";
 import {
   ACTION_TAKEN_OPTIONS,
@@ -295,6 +297,7 @@ export function IncidentsWorkspace() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [locationMessage, setLocationMessage] = useState<string | null>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
 
   const latestFormRef = useRef(form);
   const draftDirtyRef = useRef(draftDirty);
@@ -376,6 +379,7 @@ export function IncidentsWorkspace() {
     setForm((current) => ({ ...current, [field]: value }));
     setDraftDirty(true);
     setSaveError(null);
+    setExportError(null);
   }
 
   function toggleSelection(
@@ -392,6 +396,7 @@ export function IncidentsWorkspace() {
     });
     setDraftDirty(true);
     setSaveError(null);
+    setExportError(null);
   }
 
   async function saveDraft(showMessage: boolean) {
@@ -427,6 +432,7 @@ export function IncidentsWorkspace() {
     setIsCapturingLocation(true);
     setSaveError(null);
     setLocationMessage(null);
+    setExportError(null);
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
@@ -482,6 +488,7 @@ export function IncidentsWorkspace() {
     setIsSubmitting(true);
     setSaveError(null);
     setSaveMessage(null);
+    setExportError(null);
 
     try {
       const selectedUnits = apparatusList.filter((unit) =>
@@ -548,6 +555,27 @@ export function IncidentsWorkspace() {
       );
     } finally {
       setIsSubmitting(false);
+    }
+  }
+
+  function handleExport(incident: IncidentRecord) {
+    try {
+      const rawData = (incident.raw_data ?? {}) as Record<string, unknown>;
+      const propertyUseValue =
+        typeof rawData.property_use === "string" ? rawData.property_use : null;
+
+      printIncidentPdf(
+        incident,
+        lookupOptionLabel(NERIS_INCIDENT_TYPES, incident.incident_type),
+        lookupOptionLabel(PROPERTY_USE_OPTIONS, propertyUseValue)
+      );
+      setExportError(null);
+    } catch (error) {
+      setExportError(
+        error instanceof Error
+          ? error.message
+          : "Unable to open the PDF export on this device."
+      );
     }
   }
 
@@ -964,6 +992,12 @@ export function IncidentsWorkspace() {
                   </div>
                 ) : null}
 
+                {exportError ? (
+                  <div className="rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                    {exportError}
+                  </div>
+                ) : null}
+
                 <div className="flex flex-col gap-3 sm:flex-row">
                   <Button
                     type="button"
@@ -1059,6 +1093,17 @@ export function IncidentsWorkspace() {
                         <div>
                           Personnel: {personnel.join(", ") || "None selected"}
                         </div>
+                      </div>
+                      <div className="mt-4">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleExport(incident)}
+                        >
+                          <FileOutput className="h-4 w-4" />
+                          Export PDF
+                        </Button>
                       </div>
                     </div>
                   );
