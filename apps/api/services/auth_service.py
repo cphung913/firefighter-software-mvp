@@ -1,4 +1,5 @@
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.security import hash_password, verify_password
@@ -10,6 +11,10 @@ class AuthError(Exception):
     pass
 
 
+class AuthSystemError(Exception):
+    pass
+
+
 async def signup_department(
     db: AsyncSession,
     *,
@@ -18,25 +23,35 @@ async def signup_department(
     email: str,
     password: str,
 ) -> User:
-    existing = await db.scalar(select(User).where(User.email == email))
-    if existing:
-        raise AuthError("email already registered")
+    try:
+        existing = await db.scalar(select(User).where(User.email == email))
+        if existing:
+            raise AuthError("email already registered")
 
-    department = Department(name=department_name)
-    db.add(department)
-    await db.flush()
+        department = Department(name=department_name)
+        db.add(department)
+        await db.flush()
 
-    user = User(
-        department_id=department.id,
-        name=name,
-        email=email,
-        password_hash=hash_password(password),
-        role="admin",
-    )
-    db.add(user)
-    await db.commit()
-    await db.refresh(user)
-    return user
+        user = User(
+            department_id=department.id,
+            name=name,
+            email=email,
+            password_hash=hash_password(password),
+            role="admin",
+        )
+        db.add(user)
+        await db.commit()
+        await db.refresh(user)
+        return user
+    except AuthError:
+        await db.rollback()
+        raise
+    except IntegrityError as exc:
+        await db.rollback()
+        raise AuthError("email already registered") from exc
+    except SQLAlchemyError as exc:
+        await db.rollback()
+        raise AuthSystemError("database unavailable or schema not initialized") from exc
 
 
 async def authenticate_user(

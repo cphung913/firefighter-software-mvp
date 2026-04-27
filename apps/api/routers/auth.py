@@ -6,7 +6,12 @@ from core.deps import get_current_user
 from core.security import create_access_token
 from models.user import User
 from schemas.auth import LoginRequest, SignupRequest, TokenResponse, UserOut
-from services.auth_service import AuthError, authenticate_user, signup_department
+from services.auth_service import (
+    AuthError,
+    AuthSystemError,
+    authenticate_user,
+    signup_department,
+)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -32,6 +37,11 @@ async def signup(payload: SignupRequest, db: AsyncSession = Depends(get_db)) -> 
     except AuthError as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT, detail=str(exc)
+        ) from exc
+    except AuthSystemError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(exc),
         ) from exc
     return _token_for(user)
 
