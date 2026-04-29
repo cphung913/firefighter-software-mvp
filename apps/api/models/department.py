@@ -13,3 +13,6 @@ class Department(Base, UUIDPKMixin, TimestampMixin):
     subscription_tier: Mapped[str] = mapped_column(
         String(20), nullable=False, default="trial"
     )
+    incident_seq: Mapped[int] = mapped_column(
+        nullable=False, default=0, server_default="0"
+    )

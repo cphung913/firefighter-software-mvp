@@ -50,6 +50,75 @@ export const IncidentBootstrapSchema = z.object({
 });
 export type IncidentBootstrap = z.infer<typeof IncidentBootstrapSchema>;
 
+// ===== Incidents =====
+
+export const TaxonomyOptionSchema = z.object({
+  value: z.string(),
+  label: z.string(),
+});
+export type TaxonomyOption = z.infer<typeof TaxonomyOptionSchema>;
+
+export const IncidentTaxonomySchema = z.object({
+  incident_types: z.array(TaxonomyOptionSchema),
+  action_taken_codes: z.array(TaxonomyOptionSchema),
+  property_use_codes: z.array(TaxonomyOptionSchema),
+});
+export type IncidentTaxonomy = z.infer<typeof IncidentTaxonomySchema>;
+
+export const IncidentOutSchema = z.object({
+  id: z.string().uuid(),
+  local_id: z.string().nullable(),
+  incident_number: z.string().nullable(),
+  incident_type: z.string().nullable(),
+  location_address: z.string().nullable(),
+  location_lat: z.number().nullable(),
+  location_lng: z.number().nullable(),
+  alarm_time: z.string().nullable(),
+  dispatch_time: z.string().nullable(),
+  en_route_time: z.string().nullable(),
+  on_scene_time: z.string().nullable(),
+  controlled_time: z.string().nullable(),
+  cleared_time: z.string().nullable(),
+  units_responding: z.array(z.string()),
+  personnel_on_scene: z.array(z.string()),
+  casualty_civilian: z.number(),
+  casualty_ff: z.number(),
+  narrative: z.string().nullable(),
+  actions_taken: z.array(z.string()),
+  property_use: z.string().nullable(),
+  raw_data: z.record(z.string(), z.unknown()),
+  sync_status: z.string(),
+  created_by: z.string().uuid().nullable(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+export type IncidentOut = z.infer<typeof IncidentOutSchema>;
+
+export const IncidentCreateRequestSchema = z.object({
+  local_id: z.string().nullable().optional(),
+  incident_type: z.string().nullable().optional(),
+  location_address: z.string().nullable().optional(),
+  location_lat: z.number().nullable().optional(),
+  location_lng: z.number().nullable().optional(),
+  alarm_time: z.string().nullable().optional(),
+  dispatch_time: z.string().nullable().optional(),
+  en_route_time: z.string().nullable().optional(),
+  on_scene_time: z.string().nullable().optional(),
+  controlled_time: z.string().nullable().optional(),
+  cleared_time: z.string().nullable().optional(),
+  units_responding: z.array(z.string()).optional(),
+  personnel_on_scene: z.array(z.string()).optional(),
+  casualty_civilian: z.number().optional(),
+  casualty_ff: z.number().optional(),
+  narrative: z.string().nullable().optional(),
+  actions_taken: z.array(z.string()).optional(),
+  property_use: z.string().nullable().optional(),
+  raw_data: z.record(z.string(), z.unknown()).optional(),
+});
+export type IncidentCreateRequest = z.infer<typeof IncidentCreateRequestSchema>;
+
+// ===== Imports =====
+
 export const ImportEntityTypeSchema = z.enum([
   "apparatus",
   "personnel",
