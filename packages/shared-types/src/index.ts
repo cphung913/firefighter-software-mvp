@@ -72,7 +72,24 @@ export const ImportFieldMappingSchema = z.object({
 });
 export type ImportFieldMapping = z.infer<typeof ImportFieldMappingSchema>;
 
+export const ImportFieldMappingOverrideSchema = z.object({
+  source_header: z.string(),
+  target_field: z.string().nullable(),
+});
+export type ImportFieldMappingOverride = z.infer<
+  typeof ImportFieldMappingOverrideSchema
+>;
+
+export const ImportPreviewMappingOverrideSchema = z.object({
+  section_index: z.number(),
+  mappings: z.array(ImportFieldMappingOverrideSchema),
+});
+export type ImportPreviewMappingOverride = z.infer<
+  typeof ImportPreviewMappingOverrideSchema
+>;
+
 export const ImportSectionSummarySchema = z.object({
+  section_index: z.number(),
   dataset_label: z.string(),
   entity_type: ImportEntityTypeSchema,
   row_count: z.number(),
@@ -107,6 +124,7 @@ export const ImportPreviewRowSchema = z.object({
 export type ImportPreviewRow = z.infer<typeof ImportPreviewRowSchema>;
 
 export const ImportPreviewSectionSchema = z.object({
+  section_index: z.number(),
   dataset_label: z.string(),
   entity_type: ImportEntityTypeSchema,
   mappings: z.array(ImportFieldMappingSchema),
@@ -114,6 +132,12 @@ export const ImportPreviewSectionSchema = z.object({
   warnings: z.array(z.string()),
 });
 export type ImportPreviewSection = z.infer<typeof ImportPreviewSectionSchema>;
+
+export const ImportPreviewRequestSchema = z.object({
+  upload_id: z.string(),
+  mapping_overrides: z.array(ImportPreviewMappingOverrideSchema).optional(),
+});
+export type ImportPreviewRequest = z.infer<typeof ImportPreviewRequestSchema>;
 
 export const ImportPreviewResponseSchema = z.object({
   upload_id: z.string(),
@@ -138,6 +162,31 @@ export const ImportCommitResponseSchema = z.object({
   committed_at: z.string(),
 });
 export type ImportCommitResponse = z.infer<typeof ImportCommitResponseSchema>;
+
+export const ApparatusCreateRequestSchema = z.object({
+  local_id: z.string().nullable().optional(),
+  unit_id: z.string().nullable().optional(),
+  type: z.string().nullable().optional(),
+  year: z.number().nullable().optional(),
+  make: z.string().nullable().optional(),
+  model: z.string().nullable().optional(),
+  vin: z.string().nullable().optional(),
+  mileage: z.number().nullable().optional(),
+  service_status: z.string().nullable().optional(),
+});
+export type ApparatusCreateRequest = z.infer<
+  typeof ApparatusCreateRequestSchema
+>;
+
+export const PersonnelCreateRequestSchema = z.object({
+  name: z.string(),
+  email: z.string().email().nullable().optional(),
+  role: z.string().nullable().optional(),
+  badge_number: z.string().nullable().optional(),
+});
+export type PersonnelCreateRequest = z.infer<
+  typeof PersonnelCreateRequestSchema
+>;
 
 // ===== Auth =====
 

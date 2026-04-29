@@ -25,6 +25,7 @@ from schemas.imports import (
     ImportCommitSummaryOut,
     ImportEntityType,
     ImportFieldMappingOut,
+    ImportPreviewMappingOverride,
     ImportPreviewResponse,
     ImportPreviewRowOut,
     ImportPreviewSectionOut,
@@ -121,6 +122,14 @@ FIELD_LABELS = {
 }
 
 PREVIEW_STORE: dict[str, "PreparedUpload"] = {}
+_PREVIEW_TTL_SECONDS = 3600
+
+
+def _evict_stale_previews() -> None:
+    cutoff = datetime.now(UTC).timestamp() - _PREVIEW_TTL_SECONDS
+    stale = [k for k, v in PREVIEW_STORE.items() if v.created_at.timestamp() < cutoff]
+    for k in stale:
+        PREVIEW_STORE.pop(k, None)
 
 
 class ImportServiceError(Exception):
@@ -166,6 +175,7 @@ class PreparedUpload:
     upload_id: str
     department_id: uuid.UUID
     file_name: str
+    datasets: list[ParsedDataset]
     sections: list[PreparedSection]
     created_at: datetime
 
@@ -210,11 +220,14 @@ async def stage_upload(
             )
         )
 
+    _evict_stale_previews()
+
     upload_id = str(uuid.uuid4())
     PREVIEW_STORE[upload_id] = PreparedUpload(
         upload_id=upload_id,
         department_id=department_id,
         file_name=file_name,
+        datasets=datasets,
         sections=sections,
         created_at=datetime.now(UTC),
     )
@@ -224,27 +237,58 @@ async def stage_upload(
         file_name=file_name,
         sections=[
             ImportSectionSummaryOut(
+                section_index=index,
                 dataset_label=section.dataset_label,
                 entity_type=section.entity_type,
                 row_count=len(section.rows),
                 mapped_fields=sum(1 for mapping in section.mappings if mapping.target_field),
                 warnings=section.warnings,
             )
-            for section in sections
+            for index, section in enumerate(sections)
         ],
     )
 
 
-def get_preview(upload_id: str, department_id: uuid.UUID) -> ImportPreviewResponse:
+async def get_preview(
+    db: AsyncSession,
+    upload_id: str,
+    department_id: uuid.UUID,
+    mapping_overrides: list[ImportPreviewMappingOverride] | None = None,
+) -> ImportPreviewResponse:
     staged = PREVIEW_STORE.get(upload_id)
     if staged is None or staged.department_id != department_id:
         raise ImportNotFoundError("This import preview has expired. Upload the file again.")
+
+    if mapping_overrides:
+        context = await _load_existing_context(db, department_id)
+        overrides_by_index = {override.section_index: override for override in mapping_overrides}
+        invalid_indexes = [
+            index
+            for index in overrides_by_index
+            if index < 0 or index >= len(staged.sections)
+        ]
+        if invalid_indexes:
+            raise ImportServiceError("Invalid section index in mapping overrides.")
+        for index, section in enumerate(staged.sections):
+            override = overrides_by_index.get(index)
+            if override is None:
+                continue
+            dataset = staged.datasets[index]
+            mappings, warnings = _apply_mapping_overrides(
+                section.entity_type, section.mappings, override
+            )
+            rows = _build_preview_rows(section.entity_type, dataset, mappings, context)
+            _mark_duplicate_rows(section.entity_type, rows)
+            section.mappings = mappings
+            section.rows = rows
+            section.warnings = warnings
 
     return ImportPreviewResponse(
         upload_id=staged.upload_id,
         file_name=staged.file_name,
         sections=[
             ImportPreviewSectionOut(
+                section_index=index,
                 dataset_label=section.dataset_label,
                 entity_type=section.entity_type,
                 mappings=section.mappings,
@@ -269,7 +313,7 @@ def get_preview(upload_id: str, department_id: uuid.UUID) -> ImportPreviewRespon
                     for row in section.rows
                 ],
             )
-            for section in staged.sections
+            for index, section in enumerate(staged.sections)
         ],
     )
 
@@ -553,6 +597,49 @@ def _build_mappings(
         warnings.append("No strong header matches were found. Double-check this preview before importing.")
 
     return mappings, warnings
+
+
+def _apply_mapping_overrides(
+    entity_type: ImportEntityType,
+    base_mappings: list[ImportFieldMappingOut],
+    overrides: ImportPreviewMappingOverride,
+) -> tuple[list[ImportFieldMappingOut], list[str]]:
+    override_map = {mapping.source_header: mapping.target_field for mapping in overrides.mappings}
+    updated: list[ImportFieldMappingOut] = []
+    warnings: list[str] = []
+    used_fields: set[str] = set()
+
+    for mapping in base_mappings:
+        target_field = override_map.get(mapping.source_header, mapping.target_field)
+        if target_field is not None and target_field not in ENTITY_FIELDS[entity_type]:
+            warnings.append(
+                f"{mapping.source_header} mapped to an unknown field and was ignored."
+            )
+            target_field = None
+        updated.append(
+            ImportFieldMappingOut(
+                source_header=mapping.source_header,
+                target_field=target_field,
+                confidence=1.0 if target_field else 0.0,
+            )
+        )
+
+    for mapping in updated:
+        if not mapping.target_field:
+            continue
+        if mapping.target_field in used_fields:
+            warnings.append(
+                f"{mapping.source_header} overlaps an existing field mapping and was ignored."
+            )
+            mapping.target_field = None
+            mapping.confidence = 0.0
+        else:
+            used_fields.add(mapping.target_field)
+
+    if not used_fields:
+        warnings.append("No fields are currently mapped. Choose at least one column before importing.")
+
+    return updated, warnings
 
 
 def _build_preview_rows(

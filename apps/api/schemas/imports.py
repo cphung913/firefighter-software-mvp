@@ -16,6 +16,7 @@ class ImportFieldMappingOut(BaseModel):
 
 
 class ImportSectionSummaryOut(BaseModel):
+    section_index: int
     dataset_label: str
     entity_type: ImportEntityType
     row_count: int
@@ -29,8 +30,19 @@ class ImportUploadResponse(BaseModel):
     sections: list[ImportSectionSummaryOut]
 
 
+class ImportFieldMappingOverride(BaseModel):
+    source_header: str
+    target_field: str | None
+
+
+class ImportPreviewMappingOverride(BaseModel):
+    section_index: int
+    mappings: list[ImportFieldMappingOverride] = Field(default_factory=list)
+
+
 class ImportPreviewRequest(BaseModel):
     upload_id: str
+    mapping_overrides: list[ImportPreviewMappingOverride] = Field(default_factory=list)
 
 
 class ImportRowDiffCellOut(BaseModel):
@@ -50,6 +62,7 @@ class ImportPreviewRowOut(BaseModel):
 
 
 class ImportPreviewSectionOut(BaseModel):
+    section_index: int
     dataset_label: str
     entity_type: ImportEntityType
     mappings: list[ImportFieldMappingOut]

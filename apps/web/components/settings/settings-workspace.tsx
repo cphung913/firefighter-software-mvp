@@ -7,16 +7,21 @@ import {
   CheckCircle2,
   CloudOff,
   Database,
+  Download,
   FileSpreadsheet,
   FileText,
   Loader2,
   RefreshCw,
+  Truck,
   Upload,
+  UserPlus,
+  X,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import type {
   ImportCommitResponse,
   ImportEntityType,
+  ImportPreviewMappingOverride,
   ImportPreviewResponse,
   ImportPreviewSection,
   ImportRowAction,
@@ -32,12 +37,15 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { hydrateIncidentBootstrap } from "@/lib/incidents/bootstrap";
+import { createApparatus } from "@/lib/assets/api";
 import {
   commitImportPreview,
   fetchImportPreview,
   uploadImportFile,
 } from "@/lib/imports/api";
+import { createPersonnel } from "@/lib/roster/api";
 import { runSync } from "@/lib/sync/engine";
 import { cn } from "@/lib/utils";
 import { useSyncStore } from "@/store/sync-store";
@@ -46,6 +54,34 @@ const ENTITY_LABELS: Record<ImportEntityType, string> = {
   apparatus: "Apparatus",
   personnel: "Personnel",
   incidents: "Incidents",
+};
+
+const ENTITY_FIELDS: Record<ImportEntityType, string[]> = {
+  apparatus: [
+    "unit_id",
+    "type",
+    "year",
+    "make",
+    "model",
+    "vin",
+    "mileage",
+    "service_status",
+  ],
+  personnel: ["name", "email", "role", "badge_number"],
+  incidents: [
+    "incident_number",
+    "incident_type",
+    "location_address",
+    "location_lat",
+    "location_lng",
+    "alarm_time",
+    "dispatch_time",
+    "en_route_time",
+    "on_scene_time",
+    "controlled_time",
+    "cleared_time",
+    "narrative",
+  ],
 };
 
 const FIELD_LABELS: Record<string, string> = {
@@ -67,7 +103,10 @@ const FIELD_LABELS: Record<string, string> = {
   location_lat: "Latitude",
   location_lng: "Longitude",
   alarm_time: "Alarm time",
+  dispatch_time: "Dispatch time",
+  en_route_time: "En route",
   on_scene_time: "On scene",
+  controlled_time: "Controlled",
   cleared_time: "Cleared",
   narrative: "Narrative",
 };
@@ -145,7 +184,8 @@ function topChangedFields(section: ImportPreviewSection): string[] {
 }
 
 export function SettingsWorkspace() {
-  const { status: sessionStatus } = useSession();
+  const { data: session, status: sessionStatus } = useSession();
+  const isAdmin = session?.role === "admin";
   const online = useSyncStore((state) => state.online);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -157,14 +197,59 @@ export function SettingsWorkspace() {
     null
   );
   const [preview, setPreview] = useState<ImportPreviewResponse | null>(null);
+  const [mappingOverrides, setMappingOverrides] = useState<
+    Record<number, Record<string, string | null>>
+  >({});
+  const [hasMappingChanges, setHasMappingChanges] = useState(false);
   const [selectedSectionIndex, setSelectedSectionIndex] = useState(0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [commitResult, setCommitResult] = useState<ImportCommitResponse | null>(
     null
   );
+  const [showPersonnelModal, setShowPersonnelModal] = useState(false);
+  const [showApparatusModal, setShowApparatusModal] = useState(false);
+  const [isSavingPersonnel, setIsSavingPersonnel] = useState(false);
+  const [isSavingApparatus, setIsSavingApparatus] = useState(false);
+  const [personnelError, setPersonnelError] = useState<string | null>(null);
+  const [apparatusError, setApparatusError] = useState<string | null>(null);
+  const [personnelForm, setPersonnelForm] = useState({
+    name: "",
+    email: "",
+    role: "member",
+    badge_number: "",
+  });
+  const [apparatusForm, setApparatusForm] = useState({
+    unit_id: "",
+    type: "",
+    year: "",
+    make: "",
+    model: "",
+    vin: "",
+    mileage: "",
+    service_status: "available",
+  });
 
   const selectedSection = preview?.sections[selectedSectionIndex] ?? null;
   const totals = useMemo(() => sectionTotals(preview), [preview]);
+
+  useEffect(() => {
+    if (!preview) {
+      setMappingOverrides({});
+      setHasMappingChanges(false);
+      return;
+    }
+    const nextOverrides: Record<number, Record<string, string | null>> = {};
+    preview.sections.forEach((section) => {
+      nextOverrides[section.section_index] = Object.fromEntries(
+        section.mappings.map((mapping) => [
+          mapping.source_header,
+          mapping.target_field ?? null,
+        ])
+      );
+    });
+    setMappingOverrides(nextOverrides);
+    setHasMappingChanges(false);
+  }, [preview]);
 
   useEffect(() => {
     if (!preview) {
@@ -176,13 +261,17 @@ export function SettingsWorkspace() {
     }
   }, [preview, selectedSectionIndex]);
 
-  async function loadPreview(uploadId: string) {
+  async function loadPreview(
+    uploadId: string,
+    overrides?: ImportPreviewMappingOverride[]
+  ) {
     setIsRefreshingPreview(true);
     try {
-      const payload = await fetchImportPreview(uploadId);
+      const payload = await fetchImportPreview(uploadId, overrides);
       setPreview(payload);
       setCommitResult(null);
       setErrorMessage(null);
+      setHasMappingChanges(false);
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : "Unable to load import preview."
@@ -239,6 +328,138 @@ export function SettingsWorkspace() {
     }
   }
 
+  function buildMappingOverrides(): ImportPreviewMappingOverride[] {
+    if (!preview) return [];
+    return preview.sections.map((section) => ({
+      section_index: section.section_index,
+      mappings: section.mappings.map((mapping) => ({
+        source_header: mapping.source_header,
+        target_field:
+          mappingOverrides[section.section_index]?.[mapping.source_header] ??
+          mapping.target_field ??
+          null,
+      })),
+    }));
+  }
+
+  function updateMapping(
+    sectionIndex: number,
+    sourceHeader: string,
+    targetField: string | null
+  ) {
+    setMappingOverrides((prev) => ({
+      ...prev,
+      [sectionIndex]: {
+        ...(prev[sectionIndex] ?? {}),
+        [sourceHeader]: targetField,
+      },
+    }));
+    setHasMappingChanges(true);
+  }
+
+  function resetPersonnelForm() {
+    setPersonnelForm({
+      name: "",
+      email: "",
+      role: "member",
+      badge_number: "",
+    });
+    setPersonnelError(null);
+  }
+
+  function resetApparatusForm() {
+    setApparatusForm({
+      unit_id: "",
+      type: "",
+      year: "",
+      make: "",
+      model: "",
+      vin: "",
+      mileage: "",
+      service_status: "available",
+    });
+    setApparatusError(null);
+  }
+
+  async function handleAddPersonnel() {
+    if (!personnelForm.name.trim()) {
+      setPersonnelError("Name is required.");
+      return;
+    }
+
+    setIsSavingPersonnel(true);
+    setPersonnelError(null);
+
+    try {
+      await createPersonnel({
+        name: personnelForm.name.trim(),
+        email: personnelForm.email.trim() || undefined,
+        role: personnelForm.role || "member",
+        badge_number: personnelForm.badge_number.trim() || undefined,
+      });
+      await hydrateIncidentBootstrap();
+      await runSync();
+      setShowPersonnelModal(false);
+      resetPersonnelForm();
+    } catch (error) {
+      setPersonnelError(
+        error instanceof Error
+          ? error.message
+          : "Unable to add personnel right now."
+      );
+    } finally {
+      setIsSavingPersonnel(false);
+    }
+  }
+
+  async function handleAddApparatus() {
+    const unitId = apparatusForm.unit_id.trim();
+    const vin = apparatusForm.vin.trim();
+    if (!unitId && !vin) {
+      setApparatusError("Unit ID or VIN is required.");
+      return;
+    }
+
+    const yearValue = apparatusForm.year.trim()
+      ? Number(apparatusForm.year)
+      : undefined;
+    const mileageValue = apparatusForm.mileage.trim()
+      ? Number(apparatusForm.mileage)
+      : undefined;
+
+    setIsSavingApparatus(true);
+    setApparatusError(null);
+
+    try {
+      await createApparatus({
+        unit_id: unitId || undefined,
+        type: apparatusForm.type.trim() || undefined,
+        year: yearValue !== undefined && Number.isFinite(yearValue)
+          ? yearValue
+          : undefined,
+        make: apparatusForm.make.trim() || undefined,
+        model: apparatusForm.model.trim() || undefined,
+        vin: vin || undefined,
+        mileage: mileageValue !== undefined && Number.isFinite(mileageValue)
+          ? mileageValue
+          : undefined,
+        service_status: apparatusForm.service_status || "available",
+      });
+      await hydrateIncidentBootstrap();
+      await runSync();
+      setShowApparatusModal(false);
+      resetApparatusForm();
+    } catch (error) {
+      setApparatusError(
+        error instanceof Error
+          ? error.message
+          : "Unable to add apparatus right now."
+      );
+    } finally {
+      setIsSavingApparatus(false);
+    }
+  }
+
   function handleDrop(event: React.DragEvent<HTMLButtonElement>) {
     event.preventDefault();
     setIsDragActive(false);
@@ -289,7 +510,7 @@ export function SettingsWorkspace() {
             }}
             onDragLeave={() => setIsDragActive(false)}
             onDrop={handleDrop}
-            disabled={!online || isUploading || sessionStatus !== "authenticated"}
+            disabled={!online || isUploading || sessionStatus !== "authenticated" || !isAdmin}
             className={cn(
               "flex min-h-[12rem] w-full flex-col items-center justify-center gap-3 rounded-lg border border-dashed px-6 py-8 text-center transition-colors",
               isDragActive
@@ -384,6 +605,64 @@ export function SettingsWorkspace() {
               </div>
             </div>
           ) : null}
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="rounded-lg border bg-muted/20 p-4">
+              <div className="text-sm font-medium">Templates</div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <a href="/templates/roster-template.csv" download>
+                  <Button variant="outline" size="sm">
+                    <Download className="h-4 w-4" />
+                    Roster template
+                  </Button>
+                </a>
+                <a href="/templates/apparatus-template.csv" download>
+                  <Button variant="outline" size="sm">
+                    <Download className="h-4 w-4" />
+                    Apparatus template
+                  </Button>
+                </a>
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">
+                Use the templates as a starting point. Keep headers on the first
+                row.
+              </p>
+            </div>
+            <div className="rounded-lg border bg-muted/20 p-4">
+              <div className="text-sm font-medium">Manual entry</div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setShowPersonnelModal(true);
+                    setPersonnelError(null);
+                  }}
+                  disabled={!online || sessionStatus !== "authenticated" || !isAdmin}
+                >
+                  <UserPlus className="h-4 w-4" />
+                  Add personnel
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setShowApparatusModal(true);
+                    setApparatusError(null);
+                  }}
+                  disabled={!online || sessionStatus !== "authenticated" || !isAdmin}
+                >
+                  <Truck className="h-4 w-4" />
+                  Add apparatus
+                </Button>
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">
+                Quick add a single record if the roster file is not ready.
+              </p>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
@@ -401,7 +680,9 @@ export function SettingsWorkspace() {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => void loadPreview(preview.upload_id)}
+                  onClick={() =>
+                    void loadPreview(preview.upload_id, buildMappingOverrides())
+                  }
                   disabled={isRefreshingPreview || isUploading || isCommitting}
                 >
                   {isRefreshingPreview ? (
@@ -409,12 +690,14 @@ export function SettingsWorkspace() {
                   ) : (
                     <RefreshCw className="mr-2 h-4 w-4" />
                   )}
-                  Refresh
+                  {hasMappingChanges ? "Apply mappings" : "Refresh"}
                 </Button>
                 <Button
                   type="button"
                   onClick={() => void handleCommit()}
-                  disabled={!hasActionableRows || isCommitting || !online}
+                  disabled={
+                    !hasActionableRows || isCommitting || !online || hasMappingChanges
+                  }
                 >
                   {isCommitting ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -500,26 +783,61 @@ export function SettingsWorkspace() {
                       </span>
                     </div>
                     <div className="space-y-2 text-sm">
-                      {selectedSection.mappings.map((mapping) => (
-                        <div
-                          key={mapping.source_header}
-                          className="flex items-center justify-between gap-3 rounded-md border bg-background px-3 py-2"
-                        >
-                          <div className="min-w-0">
-                            <div className="truncate font-medium">
-                              {mapping.source_header}
+                        {selectedSection.mappings.map((mapping) => {
+                          const sectionIndex = selectedSection.section_index;
+                          const currentValue =
+                            mappingOverrides[sectionIndex]?.[
+                              mapping.source_header
+                            ] ?? mapping.target_field ?? "";
+                          return (
+                            <div
+                              key={mapping.source_header}
+                              className="flex flex-wrap items-center justify-between gap-3 rounded-md border bg-background px-3 py-2"
+                            >
+                              <div className="min-w-0">
+                                <div className="truncate font-medium">
+                                  {mapping.source_header}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  {currentValue
+                                    ? fieldLabel(currentValue)
+                                    : "Unmapped"}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <select
+                                  value={currentValue}
+                                  onChange={(event) =>
+                                    updateMapping(
+                                      sectionIndex,
+                                      mapping.source_header,
+                                      event.target.value || null
+                                    )
+                                  }
+                                  className="h-9 rounded-md border border-input bg-background px-2 text-xs"
+                                >
+                                  <option value="">Ignore</option>
+                                  {ENTITY_FIELDS[selectedSection.entity_type].map(
+                                    (fieldName) => (
+                                      <option key={fieldName} value={fieldName}>
+                                        {fieldLabel(fieldName)}
+                                      </option>
+                                    )
+                                  )}
+                                </select>
+                                <div className="text-xs font-medium text-muted-foreground">
+                                  {Math.round(mapping.confidence * 100)}%
+                                </div>
+                              </div>
                             </div>
-                            <div className="text-xs text-muted-foreground">
-                              {mapping.target_field
-                                ? fieldLabel(mapping.target_field)
-                                : "Unmapped"}
-                            </div>
+                          );
+                        })}
+                        {hasMappingChanges ? (
+                          <div className="text-xs text-muted-foreground">
+                            Mapping changes are pending. Apply mappings to refresh the
+                            preview.
                           </div>
-                          <div className="text-xs font-medium text-muted-foreground">
-                            {Math.round(mapping.confidence * 100)}%
-                          </div>
-                        </div>
-                      ))}
+                        ) : null}
                     </div>
                   </div>
 
@@ -688,6 +1006,309 @@ export function SettingsWorkspace() {
             </div>
           </CardContent>
         </Card>
+      ) : null}
+
+      {showPersonnelModal ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-lg rounded-lg border bg-background p-6 shadow-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold">Add personnel</h2>
+                <p className="text-sm text-muted-foreground">
+                  Create a roster entry for this department.
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setShowPersonnelModal(false);
+                  resetPersonnelForm();
+                }}
+                className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-muted"
+                aria-label="Close"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="mt-5 space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="personnel-name">Name</Label>
+                <Input
+                  id="personnel-name"
+                  value={personnelForm.name}
+                  onChange={(event) =>
+                    setPersonnelForm((prev) => ({
+                      ...prev,
+                      name: event.target.value,
+                    }))
+                  }
+                  placeholder="Alex Morgan"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="personnel-email">Email (optional)</Label>
+                <Input
+                  id="personnel-email"
+                  type="email"
+                  value={personnelForm.email}
+                  onChange={(event) =>
+                    setPersonnelForm((prev) => ({
+                      ...prev,
+                      email: event.target.value,
+                    }))
+                  }
+                  placeholder="alex@example.com"
+                />
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="personnel-role">Role</Label>
+                  <select
+                    id="personnel-role"
+                    value={personnelForm.role}
+                    onChange={(event) =>
+                      setPersonnelForm((prev) => ({
+                        ...prev,
+                        role: event.target.value,
+                      }))
+                    }
+                    className="h-11 w-full rounded-md border border-input bg-background px-3 text-base"
+                  >
+                    <option value="member">Member</option>
+                    <option value="officer">Officer</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="personnel-badge">Badge number</Label>
+                  <Input
+                    id="personnel-badge"
+                    value={personnelForm.badge_number}
+                    onChange={(event) =>
+                      setPersonnelForm((prev) => ({
+                        ...prev,
+                        badge_number: event.target.value,
+                      }))
+                    }
+                    placeholder="1024"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {personnelError ? (
+              <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+                {personnelError}
+              </div>
+            ) : null}
+
+            <div className="mt-6 flex flex-wrap justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setShowPersonnelModal(false);
+                  resetPersonnelForm();
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                onClick={() => void handleAddPersonnel()}
+                disabled={isSavingPersonnel}
+              >
+                {isSavingPersonnel ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : null}
+                Save personnel
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {showApparatusModal ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-lg rounded-lg border bg-background p-6 shadow-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold">Add apparatus</h2>
+                <p className="text-sm text-muted-foreground">
+                  Add a single unit to the apparatus list.
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setShowApparatusModal(false);
+                  resetApparatusForm();
+                }}
+                className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-muted"
+                aria-label="Close"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="mt-5 space-y-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="apparatus-unit">Unit ID</Label>
+                  <Input
+                    id="apparatus-unit"
+                    value={apparatusForm.unit_id}
+                    onChange={(event) =>
+                      setApparatusForm((prev) => ({
+                        ...prev,
+                        unit_id: event.target.value,
+                      }))
+                    }
+                    placeholder="Engine 1"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="apparatus-type">Type</Label>
+                  <Input
+                    id="apparatus-type"
+                    value={apparatusForm.type}
+                    onChange={(event) =>
+                      setApparatusForm((prev) => ({
+                        ...prev,
+                        type: event.target.value,
+                      }))
+                    }
+                    placeholder="Engine"
+                  />
+                </div>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="apparatus-year">Year</Label>
+                  <Input
+                    id="apparatus-year"
+                    type="number"
+                    value={apparatusForm.year}
+                    onChange={(event) =>
+                      setApparatusForm((prev) => ({
+                        ...prev,
+                        year: event.target.value,
+                      }))
+                    }
+                    placeholder="2019"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="apparatus-make">Make</Label>
+                  <Input
+                    id="apparatus-make"
+                    value={apparatusForm.make}
+                    onChange={(event) =>
+                      setApparatusForm((prev) => ({
+                        ...prev,
+                        make: event.target.value,
+                      }))
+                    }
+                    placeholder="Pierce"
+                  />
+                </div>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="apparatus-model">Model</Label>
+                  <Input
+                    id="apparatus-model"
+                    value={apparatusForm.model}
+                    onChange={(event) =>
+                      setApparatusForm((prev) => ({
+                        ...prev,
+                        model: event.target.value,
+                      }))
+                    }
+                    placeholder="Enforcer"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="apparatus-vin">VIN</Label>
+                  <Input
+                    id="apparatus-vin"
+                    value={apparatusForm.vin}
+                    onChange={(event) =>
+                      setApparatusForm((prev) => ({
+                        ...prev,
+                        vin: event.target.value,
+                      }))
+                    }
+                    placeholder="1FDUF5HT2LEA30707"
+                  />
+                </div>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="apparatus-mileage">Mileage</Label>
+                  <Input
+                    id="apparatus-mileage"
+                    type="number"
+                    value={apparatusForm.mileage}
+                    onChange={(event) =>
+                      setApparatusForm((prev) => ({
+                        ...prev,
+                        mileage: event.target.value,
+                      }))
+                    }
+                    placeholder="18000"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="apparatus-status">Service status</Label>
+                  <select
+                    id="apparatus-status"
+                    value={apparatusForm.service_status}
+                    onChange={(event) =>
+                      setApparatusForm((prev) => ({
+                        ...prev,
+                        service_status: event.target.value,
+                      }))
+                    }
+                    className="h-11 w-full rounded-md border border-input bg-background px-3 text-base"
+                  >
+                    <option value="available">Available</option>
+                    <option value="responding">Responding</option>
+                    <option value="out_of_service">Out of service</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {apparatusError ? (
+              <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+                {apparatusError}
+              </div>
+            ) : null}
+
+            <div className="mt-6 flex flex-wrap justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setShowApparatusModal(false);
+                  resetApparatusForm();
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                onClick={() => void handleAddApparatus()}
+                disabled={isSavingApparatus}
+              >
+                {isSavingApparatus ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : null}
+                Save apparatus
+              </Button>
+            </div>
+          </div>
+        </div>
       ) : null}
     </div>
   );
