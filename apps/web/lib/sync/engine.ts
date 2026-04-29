@@ -3,6 +3,7 @@
 import { db, type SyncTable } from "@/lib/db";
 import { apiFetch } from "@/lib/api/client";
 import { useSyncStore } from "@/store/sync-store";
+import { flushAudioQueue } from "@/lib/voice/audio-queue";
 
 interface SyncedRef {
   table: SyncTable;
@@ -180,6 +181,7 @@ export async function runSync(): Promise<void> {
   try {
     await pushPending();
     await pullSince();
+    await flushAudioQueue();
     store.setStatus("idle");
   } catch (err) {
     store.setStatus("error");
