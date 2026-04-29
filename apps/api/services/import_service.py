@@ -18,8 +18,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.security import hash_password
 from models.apparatus import Apparatus
 from models.incident import Incident
-from models.ppe import PpeItem
-from models.scba import ScbaUnit
 from models.sync_record import SyncRecord
 from models.user import User
 from schemas.imports import (
@@ -47,22 +45,6 @@ APPARATUS_FIELDS = (
     "service_status",
 )
 PERSONNEL_FIELDS = ("name", "email", "role", "badge_number")
-PPE_FIELDS = (
-    "item_type",
-    "serial_number",
-    "assigned_to",
-    "manufacture_date",
-    "purchase_date",
-    "last_inspection",
-    "retired_at",
-)
-SCBA_FIELDS = (
-    "serial_number",
-    "manufacturer",
-    "assigned_to",
-    "cylinder_hydro_date",
-    "regulator_service_date",
-)
 INCIDENT_FIELDS = (
     "incident_number",
     "incident_type",
@@ -70,7 +52,10 @@ INCIDENT_FIELDS = (
     "location_lat",
     "location_lng",
     "alarm_time",
+    "dispatch_time",
+    "en_route_time",
     "on_scene_time",
+    "controlled_time",
     "cleared_time",
     "narrative",
 )
@@ -78,8 +63,6 @@ INCIDENT_FIELDS = (
 ENTITY_FIELDS: dict[ImportEntityType, tuple[str, ...]] = {
     "apparatus": APPARATUS_FIELDS,
     "personnel": PERSONNEL_FIELDS,
-    "ppe": PPE_FIELDS,
-    "scba": SCBA_FIELDS,
     "incidents": INCIDENT_FIELDS,
 }
 
@@ -96,24 +79,17 @@ HEADER_ALIASES: dict[str, tuple[str, ...]] = {
     "email": ("email address", "e-mail"),
     "role": ("rank", "title", "position"),
     "badge_number": ("badge", "badge no", "member number"),
-    "item_type": ("ppe type", "garment", "gear type", "item"),
-    "serial_number": ("serial", "serial no", "serial #", "asset serial", "bottle serial"),
-    "assigned_to": ("assigned firefighter", "assigned user", "assigned member", "owner"),
-    "manufacture_date": ("manufactured", "mfg date", "date manufactured"),
-    "purchase_date": ("purchased", "acquired", "date purchased"),
-    "last_inspection": ("inspection", "last verified", "last advanced inspection"),
-    "retired_at": ("retire date", "retired", "retirement date"),
-    "manufacturer": ("maker", "brand"),
-    "cylinder_hydro_date": ("hydro date", "hydro test", "cylinder hydro"),
-    "regulator_service_date": ("regulator service", "flow test", "service date"),
     "incident_number": ("run number", "call number", "incident no", "incident #"),
     "incident_type": ("call type", "run type", "dispatch type"),
     "location_address": ("address", "location", "incident address"),
     "location_lat": ("latitude", "lat"),
     "location_lng": ("longitude", "lng", "long"),
-    "alarm_time": ("dispatch time", "alarm", "call time"),
-    "on_scene_time": ("arrival time", "scene time"),
-    "cleared_time": ("clear time", "back in service"),
+    "alarm_time": ("alarm", "call time"),
+    "dispatch_time": ("dispatch time", "dispatched"),
+    "en_route_time": ("en route", "enroute time", "responding time"),
+    "on_scene_time": ("arrival time", "scene time", "on scene"),
+    "controlled_time": ("controlled", "under control"),
+    "cleared_time": ("clear time", "back in service", "cleared"),
     "narrative": ("notes", "description", "remarks"),
 }
 
@@ -130,23 +106,16 @@ FIELD_LABELS = {
     "email": "Email",
     "role": "Role",
     "badge_number": "Badge",
-    "item_type": "PPE item",
-    "serial_number": "Serial",
-    "assigned_to": "Assigned to",
-    "manufacture_date": "Manufacture date",
-    "purchase_date": "Purchase date",
-    "last_inspection": "Last inspection",
-    "retired_at": "Retired",
-    "manufacturer": "Manufacturer",
-    "cylinder_hydro_date": "Hydro test",
-    "regulator_service_date": "Regulator service",
     "incident_number": "Incident #",
     "incident_type": "Incident type",
     "location_address": "Address",
     "location_lat": "Latitude",
     "location_lng": "Longitude",
     "alarm_time": "Alarm time",
+    "dispatch_time": "Dispatch time",
+    "en_route_time": "En route time",
     "on_scene_time": "On scene",
+    "controlled_time": "Controlled time",
     "cleared_time": "Cleared",
     "narrative": "Narrative",
 }
@@ -209,8 +178,6 @@ class ExistingContext:
     users_by_name: dict[str, User]
     apparatus_by_unit: dict[str, Apparatus]
     apparatus_by_vin: dict[str, Apparatus]
-    ppe_by_serial: dict[str, PpeItem]
-    scba_by_serial: dict[str, ScbaUnit]
     incidents_by_number: dict[str, Incident]
 
 
@@ -344,22 +311,6 @@ async def commit_preview(
                 )
             elif section.entity_type == "apparatus":
                 created = await _commit_apparatus_row(
-                    db,
-                    department_id=department_id,
-                    user_id=user_id,
-                    row=row,
-                    context=context,
-                )
-            elif section.entity_type == "ppe":
-                created = await _commit_ppe_row(
-                    db,
-                    department_id=department_id,
-                    user_id=user_id,
-                    row=row,
-                    context=context,
-                )
-            elif section.entity_type == "scba":
-                created = await _commit_scba_row(
                     db,
                     department_id=department_id,
                     user_id=user_id,
@@ -631,7 +582,7 @@ def _build_preview_rows(
 
         warnings = _row_warnings(entity_type, incoming)
         existing = _match_existing(entity_type, incoming, context)
-        current = _snapshot_existing(entity_type, existing, context) if existing else None
+        current = _snapshot_existing(entity_type, existing) if existing else None
         diff = _build_diff(incoming, current)
         changed_fields = list(diff.keys())
 
@@ -671,10 +622,6 @@ def _row_warnings(entity_type: ImportEntityType, incoming: dict[str, Any]) -> li
         warnings.append("Needs a unit ID or VIN to import safely.")
     if entity_type == "personnel" and not incoming.get("name"):
         warnings.append("Name is required for personnel imports.")
-    if entity_type == "ppe" and not incoming.get("item_type"):
-        warnings.append("PPE rows need an item type.")
-    if entity_type == "scba" and not incoming.get("serial_number"):
-        warnings.append("SCBA rows should include a serial number.")
     if entity_type == "incidents" and not (
         incoming.get("incident_number") or incoming.get("location_address")
     ):
@@ -687,10 +634,6 @@ def _is_missing_required(entity_type: ImportEntityType, incoming: dict[str, Any]
         return not (incoming.get("unit_id") or incoming.get("vin"))
     if entity_type == "personnel":
         return not incoming.get("name")
-    if entity_type == "ppe":
-        return not incoming.get("item_type")
-    if entity_type == "scba":
-        return not incoming.get("serial_number")
     return not (incoming.get("incident_number") or incoming.get("location_address"))
 
 
@@ -733,8 +676,6 @@ def _row_key(entity_type: ImportEntityType, incoming: dict[str, Any]) -> str | N
         key = incoming.get("vin") or incoming.get("unit_id")
     elif entity_type == "personnel":
         key = incoming.get("email") or incoming.get("badge_number") or incoming.get("name")
-    elif entity_type in {"ppe", "scba"}:
-        key = incoming.get("serial_number")
     else:
         key = incoming.get("incident_number")
 
@@ -752,23 +693,21 @@ def _coerce_field_value(field_name: str, value: Any) -> Any:
     if field_name in {"location_lat", "location_lng"}:
         return _to_float(value)
     if field_name in {
-        "manufacture_date",
-        "purchase_date",
-        "last_inspection",
-        "retired_at",
-        "cylinder_hydro_date",
-        "regulator_service_date",
+        "alarm_time",
+        "dispatch_time",
+        "en_route_time",
+        "on_scene_time",
+        "controlled_time",
+        "cleared_time",
     }:
-        return _to_date(value)
-    if field_name in {"alarm_time", "on_scene_time", "cleared_time"}:
         return _to_datetime(value)
     if field_name == "service_status":
         normalized = _normalize_text(str(value)).replace(" ", "_")
         if "out" in normalized:
             return "out_of_service"
-        if "reserve" in normalized:
-            return "reserve"
-        return "in_service"
+        if "respond" in normalized:
+            return "responding"
+        return "available"
     if field_name == "role":
         normalized = _normalize_text(str(value)).replace(" ", "_")
         if normalized in {"chief", "captain", "lieutenant", "officer"}:
@@ -776,8 +715,6 @@ def _coerce_field_value(field_name: str, value: Any) -> Any:
         if normalized == "admin":
             return "admin"
         return "member"
-    if field_name == "item_type":
-        return _normalize_text(str(value)).replace(" ", "_")
     if isinstance(value, str):
         return value.strip()
     return value
@@ -795,15 +732,6 @@ def _to_float(value: Any) -> float | None:
         return float(str(value))
     except (TypeError, ValueError):
         return None
-
-
-def _to_date(value: Any) -> str | None:
-    if value in (None, ""):
-        return None
-    parsed = pd.to_datetime(value, errors="coerce")
-    if pd.isna(parsed):
-        return None
-    return parsed.date().isoformat()
 
 
 def _to_datetime(value: Any) -> str | None:
@@ -828,18 +756,12 @@ async def _load_existing_context(db: AsyncSession, department_id: uuid.UUID) -> 
     apparatus = (
         await db.scalars(select(Apparatus).where(Apparatus.department_id == department_id))
     ).all()
-    ppe_items = (
-        await db.scalars(select(PpeItem).where(PpeItem.department_id == department_id))
-    ).all()
-    scba_units = (
-        await db.scalars(select(ScbaUnit).where(ScbaUnit.department_id == department_id))
-    ).all()
     incidents = (
         await db.scalars(select(Incident).where(Incident.department_id == department_id))
     ).all()
 
     return ExistingContext(
-        users=users,
+        users=list(users),
         users_by_email={
             user.email.strip().lower(): user for user in users if user.email and user.email.strip()
         },
@@ -856,16 +778,6 @@ async def _load_existing_context(db: AsyncSession, department_id: uuid.UUID) -> 
         },
         apparatus_by_vin={
             unit.vin.strip().lower(): unit for unit in apparatus if unit.vin and unit.vin.strip()
-        },
-        ppe_by_serial={
-            item.serial_number.strip().lower(): item
-            for item in ppe_items
-            if item.serial_number and item.serial_number.strip()
-        },
-        scba_by_serial={
-            unit.serial_number.strip().lower(): unit
-            for unit in scba_units
-            if unit.serial_number and unit.serial_number.strip()
         },
         incidents_by_number={
             incident.incident_number.strip().lower(): incident
@@ -888,19 +800,11 @@ def _match_existing(
         return None
     if entity_type == "personnel":
         return _resolve_user(incoming.get("email"), incoming.get("badge_number"), incoming.get("name"), context)
-    if entity_type == "ppe":
-        serial = _lookup_key(incoming.get("serial_number"))
-        return context.ppe_by_serial.get(serial) if serial else None
-    if entity_type == "scba":
-        serial = _lookup_key(incoming.get("serial_number"))
-        return context.scba_by_serial.get(serial) if serial else None
     incident_number = _lookup_key(incoming.get("incident_number"))
     return context.incidents_by_number.get(incident_number) if incident_number else None
 
 
-def _snapshot_existing(
-    entity_type: ImportEntityType, existing: Any, context: ExistingContext
-) -> dict[str, Any]:
+def _snapshot_existing(entity_type: ImportEntityType, existing: Any) -> dict[str, Any]:
     if entity_type == "apparatus":
         return {
             "unit_id": existing.unit_id,
@@ -919,24 +823,6 @@ def _snapshot_existing(
             "role": existing.role,
             "badge_number": existing.badge_number,
         }
-    if entity_type == "ppe":
-        return {
-            "item_type": existing.item_type,
-            "serial_number": existing.serial_number,
-            "assigned_to": _user_label(existing.assigned_to, context),
-            "manufacture_date": existing.manufacture_date.isoformat() if existing.manufacture_date else None,
-            "purchase_date": existing.purchase_date.isoformat() if existing.purchase_date else None,
-            "last_inspection": existing.last_inspection.isoformat() if existing.last_inspection else None,
-            "retired_at": existing.retired_at.isoformat() if existing.retired_at else None,
-        }
-    if entity_type == "scba":
-        return {
-            "serial_number": existing.serial_number,
-            "manufacturer": existing.manufacturer,
-            "assigned_to": _user_label(existing.assigned_to, context),
-            "cylinder_hydro_date": existing.cylinder_hydro_date.isoformat() if existing.cylinder_hydro_date else None,
-            "regulator_service_date": existing.regulator_service_date.isoformat() if existing.regulator_service_date else None,
-        }
     return {
         "incident_number": existing.incident_number,
         "incident_type": existing.incident_type,
@@ -944,7 +830,10 @@ def _snapshot_existing(
         "location_lat": existing.location_lat,
         "location_lng": existing.location_lng,
         "alarm_time": existing.alarm_time.isoformat() if existing.alarm_time else None,
+        "dispatch_time": existing.dispatch_time.isoformat() if existing.dispatch_time else None,
+        "en_route_time": existing.en_route_time.isoformat() if existing.en_route_time else None,
         "on_scene_time": existing.on_scene_time.isoformat() if existing.on_scene_time else None,
+        "controlled_time": existing.controlled_time.isoformat() if existing.controlled_time else None,
         "cleared_time": existing.cleared_time.isoformat() if existing.cleared_time else None,
         "narrative": existing.narrative,
     }
@@ -970,8 +859,6 @@ def _match_reason(
         if badge and _lookup_key(badge) == _lookup_key(existing.badge_number):
             return "Matched on badge number"
         return "Matched on name"
-    if entity_type in {"ppe", "scba"}:
-        return "Matched on serial number"
     return "Matched on incident number"
 
 
@@ -1000,22 +887,11 @@ def _resolve_user(
     return None
 
 
-def _user_label(user_id: uuid.UUID | None, context: ExistingContext) -> str | None:
-    if user_id is None:
-        return None
-    for user in context.users:
-        if user.id == user_id:
-            return user.name
-    return None
-
-
 def _section_commit_order(entity_type: ImportEntityType) -> int:
     order = {
         "personnel": 0,
         "apparatus": 1,
-        "ppe": 2,
-        "scba": 3,
-        "incidents": 4,
+        "incidents": 2,
     }
     return order[entity_type]
 
@@ -1082,60 +958,6 @@ async def _commit_apparatus_row(
     return created
 
 
-async def _commit_ppe_row(
-    db: AsyncSession,
-    *,
-    department_id: uuid.UUID,
-    user_id: uuid.UUID,
-    row: PreparedRow,
-    context: ExistingContext,
-) -> bool:
-    existing = _match_existing("ppe", row.incoming, context)
-    created = existing is None
-    if existing is None:
-        existing = PpeItem(department_id=department_id, item_type=str(row.incoming.get("item_type") or "gear"))
-        db.add(existing)
-
-    existing.item_type = str(row.incoming.get("item_type") or existing.item_type)
-    existing.serial_number = row.incoming.get("serial_number")
-    existing.assigned_to = _resolve_user_id(row.incoming.get("assigned_to"), context)
-    existing.manufacture_date = _maybe_date(row.incoming.get("manufacture_date"))
-    existing.purchase_date = _maybe_date(row.incoming.get("purchase_date"))
-    existing.last_inspection = _maybe_date(row.incoming.get("last_inspection"))
-    existing.retired_at = _maybe_date(row.incoming.get("retired_at"))
-
-    await db.flush()
-    _record_sync(db, department_id, "ppe_items", existing.id, user_id)
-    _index_ppe(existing, context)
-    return created
-
-
-async def _commit_scba_row(
-    db: AsyncSession,
-    *,
-    department_id: uuid.UUID,
-    user_id: uuid.UUID,
-    row: PreparedRow,
-    context: ExistingContext,
-) -> bool:
-    existing = _match_existing("scba", row.incoming, context)
-    created = existing is None
-    if existing is None:
-        existing = ScbaUnit(department_id=department_id)
-        db.add(existing)
-
-    existing.serial_number = row.incoming.get("serial_number")
-    existing.manufacturer = row.incoming.get("manufacturer")
-    existing.assigned_to = _resolve_user_id(row.incoming.get("assigned_to"), context)
-    existing.cylinder_hydro_date = _maybe_date(row.incoming.get("cylinder_hydro_date"))
-    existing.regulator_service_date = _maybe_date(row.incoming.get("regulator_service_date"))
-
-    await db.flush()
-    _record_sync(db, department_id, "scba_units", existing.id, user_id)
-    _index_scba(existing, context)
-    return created
-
-
 async def _commit_incident_row(
     db: AsyncSession,
     *,
@@ -1150,10 +972,14 @@ async def _commit_incident_row(
         existing = Incident(department_id=department_id, raw_data={}, created_by=user_id)
         db.add(existing)
 
+    datetime_fields = {
+        "alarm_time", "dispatch_time", "en_route_time",
+        "on_scene_time", "controlled_time", "cleared_time",
+    }
     for field_name in INCIDENT_FIELDS:
         if field_name not in row.incoming:
             continue
-        if field_name in {"alarm_time", "on_scene_time", "cleared_time"}:
+        if field_name in datetime_fields:
             setattr(existing, field_name, _maybe_datetime(row.incoming.get(field_name)))
         else:
             setattr(existing, field_name, row.incoming.get(field_name))
@@ -1175,12 +1001,6 @@ async def _commit_incident_row(
 def _placeholder_email(name: Any) -> str:
     base = _normalize_text(str(name or "imported member")).replace(" ", ".") or "imported.member"
     return f"{base}.{uuid.uuid4().hex[:8]}@import.local"
-
-
-def _maybe_date(value: Any) -> date | None:
-    if not isinstance(value, str) or not value:
-        return None
-    return date.fromisoformat(value)
 
 
 def _maybe_datetime(value: Any) -> datetime | None:
@@ -1236,16 +1056,6 @@ def _index_apparatus(unit: Apparatus, context: ExistingContext) -> None:
         context.apparatus_by_unit[unit.unit_id.strip().lower()] = unit
     if unit.vin:
         context.apparatus_by_vin[unit.vin.strip().lower()] = unit
-
-
-def _index_ppe(item: PpeItem, context: ExistingContext) -> None:
-    if item.serial_number:
-        context.ppe_by_serial[item.serial_number.strip().lower()] = item
-
-
-def _index_scba(unit: ScbaUnit, context: ExistingContext) -> None:
-    if unit.serial_number:
-        context.scba_by_serial[unit.serial_number.strip().lower()] = unit
 
 
 def _index_incident(incident: Incident, context: ExistingContext) -> None:

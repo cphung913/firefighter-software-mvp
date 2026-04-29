@@ -32,8 +32,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { hydrateAssetsBootstrap } from "@/lib/assets/bootstrap";
-import { hydrateChecklistBootstrap } from "@/lib/checklists/bootstrap";
 import { hydrateIncidentBootstrap } from "@/lib/incidents/bootstrap";
 import {
   commitImportPreview,
@@ -47,8 +45,6 @@ import { useSyncStore } from "@/store/sync-store";
 const ENTITY_LABELS: Record<ImportEntityType, string> = {
   apparatus: "Apparatus",
   personnel: "Personnel",
-  ppe: "PPE",
-  scba: "SCBA",
   incidents: "Incidents",
 };
 
@@ -65,16 +61,6 @@ const FIELD_LABELS: Record<string, string> = {
   email: "Email",
   role: "Role",
   badge_number: "Badge",
-  item_type: "PPE item",
-  serial_number: "Serial",
-  assigned_to: "Assigned to",
-  manufacture_date: "Manufacture date",
-  purchase_date: "Purchase date",
-  last_inspection: "Last inspection",
-  retired_at: "Retired",
-  manufacturer: "Manufacturer",
-  cylinder_hydro_date: "Hydro test",
-  regulator_service_date: "Regulator service",
   incident_number: "Incident #",
   incident_type: "Incident type",
   location_address: "Address",
@@ -118,10 +104,6 @@ function entityClasses(entity: ImportEntityType): string {
       return "bg-sky-100 text-sky-800";
     case "personnel":
       return "bg-violet-100 text-violet-800";
-    case "ppe":
-      return "bg-amber-100 text-amber-800";
-    case "scba":
-      return "bg-emerald-100 text-emerald-800";
     default:
       return "bg-rose-100 text-rose-800";
   }
@@ -246,11 +228,7 @@ export function SettingsWorkspace() {
       setCommitResult(result);
       setPreview(null);
       setUploadSummary(null);
-      await Promise.allSettled([
-        hydrateChecklistBootstrap(),
-        hydrateIncidentBootstrap(),
-        hydrateAssetsBootstrap(),
-      ]);
+      await hydrateIncidentBootstrap();
       await runSync();
     } catch (error) {
       setErrorMessage(

@@ -27,15 +27,8 @@ self.addEventListener("fetch", (event) => {
 
   if (request.method !== "GET") return;
 
-  // Never intercept the API or NextAuth — those need to fail clean when offline
-  // so the sync engine can detect it.
+  // Never intercept API or NextAuth — let sync engine detect offline cleanly.
   if (url.pathname.startsWith("/api/")) return;
-  if (
-    process_env_API_URL_HOST(url.hostname) &&
-    url.pathname.startsWith("/api/")
-  ) {
-    return;
-  }
 
   // App navigations: network-first with offline fallback to last cached version.
   if (request.mode === "navigate") {
@@ -77,8 +70,3 @@ self.addEventListener("fetch", (event) => {
     );
   }
 });
-
-// Placeholder so the file parses without build-time substitution.
-function process_env_API_URL_HOST() {
-  return false;
-}

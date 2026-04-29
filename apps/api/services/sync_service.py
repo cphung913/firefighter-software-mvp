@@ -5,10 +5,8 @@ Each entity table that participates in sync must:
   * Have a `local_id` column (nullable string) unique within (department_id, local_id).
   * Have an `updated_at` (timezone-aware) column managed by the ORM.
 
-Conflict policy for MVP: last-write-wins by `updated_at`. We mark a true conflict only when
-client and server agree that both touched the row but cannot be reconciled. To keep the MVP
-simple we mark a conflict when the server record is strictly newer than the client mutation;
-otherwise the client wins.
+Conflict policy for MVP: last-write-wins by `updated_at`. A conflict is flagged only when
+the server record is strictly newer than the client mutation.
 """
 from __future__ import annotations
 
@@ -22,11 +20,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.apparatus import Apparatus
 from models.base import Base
-from models.checklist import ChecklistCompletion
 from models.incident import Incident
-from models.ppe import PpeItem
-from models.scba import ScbaUnit
 from models.sync_record import SyncRecord
+from models.voice_log import VoiceLog
 from schemas.sync import (
     SyncConflict,
     SyncMutation,
@@ -36,16 +32,12 @@ from schemas.sync import (
     SyncTable,
 )
 
-# Registry of synced models. Order matters only for pull-batch assembly.
 TABLE_REGISTRY: dict[str, type[Base]] = {
     "incidents": Incident,
-    "checklist_completions": ChecklistCompletion,
     "apparatus": Apparatus,
-    "ppe_items": PpeItem,
-    "scba_units": ScbaUnit,
+    "voice_logs": VoiceLog,
 }
 
-# Columns the client should never try to set directly.
 PROTECTED_FIELDS = {
     "id",
     "department_id",
@@ -142,10 +134,10 @@ async def apply_push(
             continue
 
         clean = _filter_assignable(model_cls, mutation.data)
-        if mutation.table == "checklist_completions" and "completed_by" not in clean:
-            clean["completed_by"] = user_id
         if mutation.table == "incidents" and "created_by" not in clean:
             clean["created_by"] = user_id
+        if mutation.table == "voice_logs" and "recorded_by" not in clean:
+            clean["recorded_by"] = user_id
 
         if existing is None:
             new_obj = model_cls(  # type: ignore[call-arg]
@@ -174,9 +166,7 @@ async def apply_push(
             )
             continue
 
-        # Conflict check: server is strictly newer than client mutation.
         server_updated: datetime = existing.updated_at  # type: ignore[attr-defined]
-        # SQLAlchemy returns naive datetimes for some configs; normalize to UTC-aware.
         if server_updated.tzinfo is None:
             server_updated = server_updated.replace(tzinfo=timezone.utc)
         client_updated = mutation.updated_at

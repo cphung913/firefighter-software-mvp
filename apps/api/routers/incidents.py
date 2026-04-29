@@ -6,9 +6,9 @@ from fastapi import APIRouter, Depends
 from core.db import get_db
 from core.deps import get_current_user
 from models.user import User
-from schemas.checklist import ChecklistApparatusOut
 from schemas.incident import IncidentBootstrapResponse, IncidentRosterUserOut
-from services.checklist_service import get_checklist_bootstrap
+from schemas.assets import ApparatusOut
+from services.assets_service import get_apparatus_list
 
 router = APIRouter(prefix="/incidents", tags=["incidents"])
 
@@ -18,7 +18,7 @@ async def bootstrap_incident_form(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> IncidentBootstrapResponse:
-    _, apparatus = await get_checklist_bootstrap(db, department_id=user.department_id)
+    apparatus = await get_apparatus_list(db, department_id=user.department_id)
     roster = await db.scalars(
         select(User)
         .where(User.department_id == user.department_id)
@@ -27,7 +27,7 @@ async def bootstrap_incident_form(
 
     return IncidentBootstrapResponse(
         apparatus=[
-            ChecklistApparatusOut.model_validate(unit, from_attributes=True)
+            ApparatusOut.model_validate(unit, from_attributes=True)
             for unit in apparatus
         ],
         users=[

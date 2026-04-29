@@ -106,6 +106,8 @@ export async function pushPending(): Promise<void> {
           await table.put({
             ...existing,
             _sync_status: "conflict",
+            // Store server snapshot so the conflict resolver can show a diff
+            _conflict_server_snapshot: conflict.server_record,
           });
         }
       }
@@ -164,10 +166,8 @@ export async function pullSince(): Promise<void> {
 function allTableHandles() {
   return [
     db.incidents,
-    db.checklist_completions,
     db.apparatus,
-    db.ppe_items,
-    db.scba_units,
+    db.voice_logs,
     db.sync_state,
   ];
 }

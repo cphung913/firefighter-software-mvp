@@ -5,7 +5,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
-ImportEntityType = Literal["apparatus", "personnel", "ppe", "scba", "incidents"]
+ImportEntityType = Literal["apparatus", "personnel", "incidents"]
 ImportRowAction = Literal["create", "update", "skip", "error"]
 
 

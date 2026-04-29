@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from schemas.checklist import ChecklistApparatusOut
+from schemas.assets import ApparatusOut
 
 
 class IncidentRosterUserOut(BaseModel):
@@ -11,5 +11,5 @@ class IncidentRosterUserOut(BaseModel):
 
 
 class IncidentBootstrapResponse(BaseModel):
-    apparatus: list[ChecklistApparatusOut]
+    apparatus: list[ApparatusOut]
     users: list[IncidentRosterUserOut]

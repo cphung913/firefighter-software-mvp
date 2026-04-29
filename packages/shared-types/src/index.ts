@@ -36,28 +36,6 @@ export const ApparatusSummarySchema = z.object({
 });
 export type ApparatusSummary = z.infer<typeof ApparatusSummarySchema>;
 
-export const ChecklistTemplateItemSchema = z.object({
-  id: z.string(),
-  label: z.string(),
-  description: z.string().nullable().optional(),
-});
-export type ChecklistTemplateItem = z.infer<typeof ChecklistTemplateItemSchema>;
-
-export const ChecklistTemplateSchema = z.object({
-  id: z.string().uuid(),
-  name: z.string(),
-  type: z.string(),
-  items: z.array(ChecklistTemplateItemSchema),
-  updated_at: z.string(),
-});
-export type ChecklistTemplate = z.infer<typeof ChecklistTemplateSchema>;
-
-export const ChecklistBootstrapSchema = z.object({
-  templates: z.array(ChecklistTemplateSchema),
-  apparatus: z.array(ApparatusSummarySchema),
-});
-export type ChecklistBootstrap = z.infer<typeof ChecklistBootstrapSchema>;
-
 export const DepartmentRosterUserSchema = z.object({
   id: z.string().uuid(),
   name: z.string(),
@@ -72,43 +50,9 @@ export const IncidentBootstrapSchema = z.object({
 });
 export type IncidentBootstrap = z.infer<typeof IncidentBootstrapSchema>;
 
-export const PpeAssetSchema = z.object({
-  id: z.string().uuid(),
-  local_id: z.string().nullable().optional(),
-  item_type: z.string(),
-  serial_number: z.string().nullable().optional(),
-  assigned_to: z.string().uuid().nullable().optional(),
-  manufacture_date: z.string().nullable().optional(),
-  purchase_date: z.string().nullable().optional(),
-  last_inspection: z.string().nullable().optional(),
-  retired_at: z.string().nullable().optional(),
-});
-export type PpeAsset = z.infer<typeof PpeAssetSchema>;
-
-export const ScbaAssetSchema = z.object({
-  id: z.string().uuid(),
-  local_id: z.string().nullable().optional(),
-  serial_number: z.string().nullable().optional(),
-  manufacturer: z.string().nullable().optional(),
-  assigned_to: z.string().uuid().nullable().optional(),
-  cylinder_hydro_date: z.string().nullable().optional(),
-  regulator_service_date: z.string().nullable().optional(),
-});
-export type ScbaAsset = z.infer<typeof ScbaAssetSchema>;
-
-export const AssetBootstrapSchema = z.object({
-  apparatus: z.array(ApparatusSummarySchema),
-  ppe_items: z.array(PpeAssetSchema),
-  scba_units: z.array(ScbaAssetSchema),
-  users: z.array(DepartmentRosterUserSchema),
-});
-export type AssetBootstrap = z.infer<typeof AssetBootstrapSchema>;
-
 export const ImportEntityTypeSchema = z.enum([
   "apparatus",
   "personnel",
-  "ppe",
-  "scba",
   "incidents",
 ]);
 export type ImportEntityType = z.infer<typeof ImportEntityTypeSchema>;
@@ -225,10 +169,8 @@ export type SyncOperation = z.infer<typeof SyncOperation>;
 
 export const SyncTable = z.enum([
   "incidents",
-  "checklist_completions",
   "apparatus",
-  "ppe_items",
-  "scba_units",
+  "voice_logs",
 ]);
 export type SyncTable = z.infer<typeof SyncTable>;
 
