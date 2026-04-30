@@ -297,7 +297,7 @@ export default function VoiceSessionPage() {
     } catch {
       // best-effort
     }
-    router.back();
+    router.push(`/voice/session/${session.id}/review`);
   };
 
   if (loadError) {

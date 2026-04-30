@@ -6,6 +6,8 @@ export interface VoiceSessionOut {
   started_at: string;
   ended_at: string | null;
   sync_status: string;
+  extraction_status: string;
+  extracted_fields: Record<string, unknown> | null;
 }
 
 export interface VoiceLogOut {
@@ -15,9 +17,61 @@ export interface VoiceLogOut {
   entry_type: string | null;
   audio_ref: string | null;
   raw_transcript: string | null;
+  ai_extracted: Record<string, unknown> | null;
   review_status: string;
   sync_status: string;
   created_at: string;
+}
+
+/** Per-field extraction result with confidence score. */
+export interface ExtractionField {
+  value: unknown | null;
+  confidence: number;
+}
+
+/** All NERIS fields as returned by the backend — each wrapped with a confidence score. */
+export interface ExtractionResult {
+  incident_type: ExtractionField;
+  location_address: ExtractionField;
+  alarm_time: ExtractionField;
+  dispatch_time: ExtractionField;
+  en_route_time: ExtractionField;
+  on_scene_time: ExtractionField;
+  controlled_time: ExtractionField;
+  cleared_time: ExtractionField;
+  units_responding: ExtractionField;
+  personnel_on_scene: ExtractionField;
+  casualty_civilian: ExtractionField;
+  casualty_ff: ExtractionField;
+  actions_taken: ExtractionField;
+  property_use: ExtractionField;
+  narrative: ExtractionField;
+}
+
+export interface ExtractionOut {
+  voice_log_id: string;
+  session_id: string;
+  review_status: string;
+  fields: ExtractionResult;
+}
+
+/** Flat editable NERIS fields for the review form — values unwrapped from ExtractionField. */
+export interface ExtractedNERISFields {
+  incident_type: string | null;
+  location_address: string | null;
+  alarm_time: string | null;
+  dispatch_time: string | null;
+  en_route_time: string | null;
+  on_scene_time: string | null;
+  controlled_time: string | null;
+  cleared_time: string | null;
+  units_responding: string[] | null;
+  personnel_on_scene: string[] | null;
+  casualty_civilian: number | null;
+  casualty_ff: number | null;
+  actions_taken: string[] | null;
+  property_use: string | null;
+  narrative: string | null;
 }
 
 export async function createSession(): Promise<VoiceSessionOut> {
@@ -53,5 +107,17 @@ export async function uploadClip(
   return apiFetch<VoiceLogOut>(`/api/v1/voice-sessions/${sessionId}/logs`, {
     method: "POST",
     body: form,
+  });
+}
+
+export async function extractSession(sessionId: string): Promise<ExtractionOut> {
+  return apiFetch<ExtractionOut>(`/api/v1/voice-sessions/${sessionId}/extract`, {
+    method: "POST",
+  });
+}
+
+export async function approveSession(sessionId: string): Promise<ExtractionOut> {
+  return apiFetch<ExtractionOut>(`/api/v1/voice-sessions/${sessionId}/approve`, {
+    method: "POST",
   });
 }
