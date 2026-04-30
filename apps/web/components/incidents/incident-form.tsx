@@ -5,14 +5,12 @@ import { useLiveQuery } from "dexie-react-hooks";
 import {
   AlertTriangle,
   Check,
-  Clock3,
   CloudOff,
   Crosshair,
   FileText,
   Loader2,
   MapPin,
   Truck,
-  Users,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 
@@ -499,10 +497,6 @@ export function IncidentForm({
     );
     if (stepId === 2) return hasFieldError || !!allErrors.location;
     return hasFieldError;
-  }
-
-  function stepIsComplete(stepId: StepId): boolean {
-    return submitAttempted && !stepHasError(stepId);
   }
 
   // ---------------------------------------------------------------------------
