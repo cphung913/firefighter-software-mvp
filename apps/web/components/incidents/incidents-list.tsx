@@ -83,6 +83,10 @@ export function IncidentsList() {
     () => db.incidents.orderBy("updated_at").reverse().limit(100).toArray(),
     []
   );
+  const activeDraft = useLiveQuery(
+    () => db.incident_drafts.get("active-incident-draft"),
+    []
+  );
 
   const incidentList = incidents ?? EMPTY_LIST;
 
@@ -144,7 +148,7 @@ export function IncidentsList() {
       ) : null}
 
       {/* List */}
-      {incidentList.length === 0 ? (
+      {incidentList.length === 0 && !activeDraft ? (
         <Card>
           <CardContent className="flex min-h-[240px] items-center justify-center">
             <div className="space-y-3 text-center">
@@ -164,6 +168,47 @@ export function IncidentsList() {
         </Card>
       ) : (
         <div className="space-y-3">
+          {activeDraft ? (
+            <Card className="border-dashed transition-shadow hover:shadow-sm">
+              <CardContent className="pt-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-semibold">
+                        {activeDraft.incident_number || "Untitled draft"}
+                      </span>
+                      <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600">
+                        Draft
+                      </span>
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {lookupLabel(NERIS_INCIDENT_TYPES, activeDraft.incident_type)}
+                    </div>
+                  </div>
+                  <div className="shrink-0 text-right text-sm text-muted-foreground">
+                    {formatTimestamp(activeDraft.updated_at)}
+                  </div>
+                </div>
+                <div className="mt-4 flex gap-2">
+                  <Link href="/incidents/new" className={buttonVariants({ size: "sm", variant: "outline" })}>
+                    Resume draft
+                  </Link>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className="text-destructive hover:text-destructive"
+                    onClick={async () => {
+                      if (!confirm("Discard this draft? This cannot be undone.")) return;
+                      await db.incident_drafts.delete("active-incident-draft");
+                    }}
+                  >
+                    Discard
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ) : null}
           {incidentList.map((incident) => {
             const raw = (incident.raw_data ?? {}) as Record<string, unknown>;
             const respondingUnits = readStringArray(raw.units_responding_labels);

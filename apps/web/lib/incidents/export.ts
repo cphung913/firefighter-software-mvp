@@ -42,10 +42,6 @@ export function printIncidentPdf(
   propertyUseLabel: string
 ): void {
   const rawData = (incident.raw_data ?? {}) as Record<string, unknown>;
-  const casualtyInfo =
-    rawData.casualty_info && typeof rawData.casualty_info === "object"
-      ? (rawData.casualty_info as Record<string, unknown>)
-      : {};
 
   const units = readStringArray(rawData.units_responding_labels).join(", ") || "None listed";
   const personnel =
@@ -146,16 +142,16 @@ export function printIncidentPdf(
         formatDateTime(incident.alarm_time)
       )}</div></div>
       <div class="row"><div class="label">Dispatch</div><div class="value">${escapeHtml(
-        formatDateTime(typeof rawData.dispatch_time === "string" ? rawData.dispatch_time : null)
+        formatDateTime(incident.dispatch_time ?? (typeof rawData.dispatch_time === "string" ? rawData.dispatch_time : null))
       )}</div></div>
       <div class="row"><div class="label">En route</div><div class="value">${escapeHtml(
-        formatDateTime(typeof rawData.en_route_time === "string" ? rawData.en_route_time : null)
+        formatDateTime(incident.en_route_time ?? (typeof rawData.en_route_time === "string" ? rawData.en_route_time : null))
       )}</div></div>
       <div class="row"><div class="label">On scene</div><div class="value">${escapeHtml(
         formatDateTime(incident.on_scene_time)
       )}</div></div>
       <div class="row"><div class="label">Controlled</div><div class="value">${escapeHtml(
-        formatDateTime(typeof rawData.controlled_time === "string" ? rawData.controlled_time : null)
+        formatDateTime(incident.controlled_time ?? (typeof rawData.controlled_time === "string" ? rawData.controlled_time : null))
       )}</div></div>
       <div class="row"><div class="label">Cleared</div><div class="value">${escapeHtml(
         formatDateTime(incident.cleared_time)
@@ -172,10 +168,10 @@ export function printIncidentPdf(
     <h2>Casualties And Exposures</h2>
     <div class="box meta">
       <div class="row"><div class="label">Civilian casualties</div><div class="value">${escapeHtml(
-        readNumber(casualtyInfo.civilian)
+        incident.casualty_civilian != null ? String(incident.casualty_civilian) : "0"
       )}</div></div>
       <div class="row"><div class="label">Firefighter casualties</div><div class="value">${escapeHtml(
-        readNumber(casualtyInfo.firefighter)
+        incident.casualty_ff != null ? String(incident.casualty_ff) : "0"
       )}</div></div>
       <div class="row"><div class="label">Exposures</div><div class="value">${escapeHtml(
         readNumber(rawData.exposures)

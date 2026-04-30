@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { ArrowLeft, FileOutput, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
@@ -17,6 +18,7 @@ import { IncidentForm, incidentRecordToForm } from "@/components/incidents/incid
 import type { IncidentRecord } from "@/lib/db";
 import { db } from "@/lib/db";
 import { deleteIncident, fetchNerisJson } from "@/lib/incidents/api";
+import { ApiError } from "@/lib/api/client";
 import { printIncidentPdf } from "@/lib/incidents/export";
 import {
   NERIS_INCIDENT_TYPES,
@@ -34,6 +36,8 @@ function lookupLabel(options: ReadonlyArray<{ value: string; label: string }>, v
 
 export function IncidentDetailWorkspace({ serverId }: Props) {
   const router = useRouter();
+  const { data: session } = useSession();
+  const isAdmin = session?.role === "admin";
   const [incident, setIncident] = useState<IncidentRecord | null | undefined>(undefined);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isExportingNeris, setIsExportingNeris] = useState(false);
@@ -49,12 +53,17 @@ export function IncidentDetailWorkspace({ serverId }: Props) {
 
   function handlePdfExport() {
     if (!incident) return;
-    const raw = (incident.raw_data ?? {}) as Record<string, unknown>;
-    printIncidentPdf(
-      incident,
-      lookupLabel(NERIS_INCIDENT_TYPES, incident.incident_type),
-      lookupLabel(PROPERTY_USE_OPTIONS, typeof raw.property_use === "string" ? raw.property_use : null)
-    );
+    setError(null);
+    try {
+      const raw = (incident.raw_data ?? {}) as Record<string, unknown>;
+      printIncidentPdf(
+        incident,
+        lookupLabel(NERIS_INCIDENT_TYPES, incident.incident_type),
+        lookupLabel(PROPERTY_USE_OPTIONS, typeof raw.property_use === "string" ? raw.property_use : null)
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to open PDF. Check your browser's popup settings.");
+    }
   }
 
   async function handleNerisExport() {
@@ -67,7 +76,9 @@ export function IncidentDetailWorkspace({ serverId }: Props) {
       const a = document.createElement("a");
       a.href = url;
       a.download = `neris-${incident?.incident_number ?? serverId}.json`;
+      document.body.appendChild(a);
       a.click();
+      document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to export NERIS JSON.");
@@ -82,12 +93,21 @@ export function IncidentDetailWorkspace({ serverId }: Props) {
     setError(null);
     try {
       await deleteIncident(serverId);
-      await db.incidents.where("server_id").equals(serverId).delete();
-      router.push("/incidents");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to delete incident.");
-      setIsDeleting(false);
+      if (err instanceof ApiError && err.status === 403) {
+        setError("Only admins can delete incidents.");
+        setIsDeleting(false);
+        return;
+      }
+      // 404 means already gone on the server — still clean up locally
+      if (!(err instanceof ApiError && err.status === 404)) {
+        setError(err instanceof Error ? err.message : "Unable to delete incident.");
+        setIsDeleting(false);
+        return;
+      }
     }
+    await db.incidents.where("server_id").equals(serverId).delete();
+    router.push("/incidents");
   }
 
   if (incident === undefined) {
@@ -136,16 +156,18 @@ export function IncidentDetailWorkspace({ serverId }: Props) {
             {isExportingNeris ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             NERIS JSON
           </Button>
-          <Button
-            type="button"
-            variant="destructive"
-            size="sm"
-            onClick={handleDelete}
-            disabled={isDeleting}
-          >
-            {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            Delete
-          </Button>
+          {isAdmin ? (
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              onClick={handleDelete}
+              disabled={isDeleting}
+            >
+              {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              Delete
+            </Button>
+          ) : null}
         </div>
       </div>
 

@@ -30,15 +30,6 @@ export async function enqueueMutation({
   const id = local_id ?? newLocalId();
   const now = new Date().toISOString();
 
-  const record = {
-    ...data,
-    local_id: id,
-    server_id: null,
-    updated_at: now,
-    _sync_status: "pending" as const,
-    _dirty_fields: Object.keys(data),
-  };
-
   await db.transaction(
     "rw",
     db[table],
@@ -47,7 +38,17 @@ export async function enqueueMutation({
       if (operation === "delete") {
         await db[table].delete(id);
       } else {
-        // dexie's put requires the keyPath to be present
+        // Preserve server_id if this record was already synced
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const existing = await (db[table] as any).get(id) as Record<string, unknown> | undefined;
+        const record = {
+          ...data,
+          local_id: id,
+          server_id: existing?.server_id ?? null,
+          updated_at: now,
+          _sync_status: "pending" as const,
+          _dirty_fields: Object.keys(data),
+        };
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await (db[table] as any).put(record);
       }
