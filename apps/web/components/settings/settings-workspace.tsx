@@ -11,13 +11,14 @@ import {
   FileSpreadsheet,
   FileText,
   Loader2,
+  LogOut,
   RefreshCw,
   Truck,
   Upload,
   UserPlus,
   X,
 } from "lucide-react";
-import { useSession } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import type {
   ImportCommitResponse,
   ImportEntityType,
@@ -1310,6 +1311,16 @@ export function SettingsWorkspace() {
           </div>
         </div>
       ) : null}
+
+      <div className="md:hidden pt-2 pb-4">
+        <button
+          onClick={() => signOut({ callbackUrl: "/login" })}
+          className="flex w-full items-center justify-center gap-2 rounded-xl border border-destructive/40 py-3 text-sm font-medium text-destructive min-h-[44px] transition-colors hover:bg-destructive/5"
+        >
+          <LogOut className="h-4 w-4" />
+          Sign out
+        </button>
+      </div>
     </div>
   );
 }
