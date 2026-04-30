@@ -266,34 +266,6 @@ export function IncidentForm({
     return () => { cancelled = true; };
   }, [sessionStatus, draftId]);
 
-  useEffect(() => {
-    if (!draftLoaded || !draftId) return;
-    const interval = window.setInterval(() => {
-      if (!draftDirtyRef.current) return;
-      void saveDraft(false);
-    }, AUTOSAVE_INTERVAL_MS);
-    return () => window.clearInterval(interval);
-  }, [draftLoaded, draftId, saveDraft]);
-
-  function updateForm<K extends keyof IncidentFormState>(field: K, value: IncidentFormState[K]) {
-    setForm((current) => ({ ...current, [field]: value }));
-    setDraftDirty(true);
-    setSaveError(null);
-  }
-
-  function toggleSelection(
-    field: "units_responding" | "personnel_on_scene" | "actions_taken",
-    value: string
-  ) {
-    setForm((current) => {
-      const existing = current[field];
-      const next = existing.includes(value) ? existing.filter((item) => item !== value) : [...existing, value];
-      return { ...current, [field]: next };
-    });
-    setDraftDirty(true);
-    setSaveError(null);
-  }
-
   const saveDraft = useCallback(async (showMessage: boolean) => {
     if (!draftId) return;
     const snapshot = latestFormRef.current;
@@ -334,6 +306,34 @@ export function IncidentForm({
       setIsSavingDraft(false);
     }
   }, [draftId]);
+
+  useEffect(() => {
+    if (!draftLoaded || !draftId) return;
+    const interval = window.setInterval(() => {
+      if (!draftDirtyRef.current) return;
+      void saveDraft(false);
+    }, AUTOSAVE_INTERVAL_MS);
+    return () => window.clearInterval(interval);
+  }, [draftLoaded, draftId, saveDraft]);
+
+  function updateForm<K extends keyof IncidentFormState>(field: K, value: IncidentFormState[K]) {
+    setForm((current) => ({ ...current, [field]: value }));
+    setDraftDirty(true);
+    setSaveError(null);
+  }
+
+  function toggleSelection(
+    field: "units_responding" | "personnel_on_scene" | "actions_taken",
+    value: string
+  ) {
+    setForm((current) => {
+      const existing = current[field];
+      const next = existing.includes(value) ? existing.filter((item) => item !== value) : [...existing, value];
+      return { ...current, [field]: next };
+    });
+    setDraftDirty(true);
+    setSaveError(null);
+  }
 
   async function captureLocation() {
     if (!("geolocation" in navigator)) {
