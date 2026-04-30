@@ -33,7 +33,7 @@ async function proxy(req: NextRequest, path: string[]) {
     const upstream = await fetch(url, init);
     const upstreamContentType = upstream.headers.get("content-type") ?? "";
 
-    if (upstreamContentType.includes("application/json")) {
+    if (upstreamContentType.includes("application/json") && upstream.status !== 204) {
       const body = (await upstream.json()) as unknown;
       return NextResponse.json(body, { status: upstream.status });
     }
