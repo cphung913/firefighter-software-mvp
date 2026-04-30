@@ -1,5 +1,5 @@
-import { IncidentsWorkspace } from "@/components/incidents/incidents-workspace";
+import { IncidentsList } from "@/components/incidents/incidents-list";
 
 export default function IncidentsPage() {
-  return <IncidentsWorkspace />;
+  return <IncidentsList />;
 }

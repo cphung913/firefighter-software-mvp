@@ -3,6 +3,7 @@
 import { db, type SyncTable } from "@/lib/db";
 import { apiFetch } from "@/lib/api/client";
 import { useSyncStore } from "@/store/sync-store";
+import { flushAudioQueue } from "@/lib/voice/audio-queue";
 
 interface SyncedRef {
   table: SyncTable;
@@ -39,6 +40,8 @@ interface PullResponse {
 }
 
 const BATCH_SIZE = 50;
+
+let syncInFlight = false;
 
 async function refreshPendingCount(): Promise<number> {
   const count = await db.pending_mutations.count();
@@ -106,6 +109,8 @@ export async function pushPending(): Promise<void> {
           await table.put({
             ...existing,
             _sync_status: "conflict",
+            // Store server snapshot so the conflict resolver can show a diff
+            _conflict_server_snapshot: conflict.server_record,
           });
         }
       }
@@ -164,26 +169,28 @@ export async function pullSince(): Promise<void> {
 function allTableHandles() {
   return [
     db.incidents,
-    db.checklist_completions,
     db.apparatus,
-    db.ppe_items,
-    db.scba_units,
+    db.voice_logs,
     db.sync_state,
   ];
 }
 
 export async function runSync(): Promise<void> {
   const store = useSyncStore.getState();
-  if (!store.online) return;
+  if (!store.online || syncInFlight) return;
+  syncInFlight = true;
   store.setStatus("syncing");
   store.setError(null);
   try {
     await pushPending();
     await pullSince();
+    await flushAudioQueue();
     store.setStatus("idle");
   } catch (err) {
     store.setStatus("error");
     store.setError(err instanceof Error ? err.message : String(err));
+  } finally {
+    syncInFlight = false;
   }
 }
 

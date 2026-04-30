@@ -5,6 +5,7 @@ import {
   ImportPreviewResponseSchema,
   ImportUploadResponseSchema,
   type ImportCommitResponse,
+  type ImportPreviewMappingOverride,
   type ImportPreviewResponse,
   type ImportUploadResponse,
 } from "@vfd/shared-types";
@@ -26,12 +27,16 @@ export async function uploadImportFile(
 }
 
 export async function fetchImportPreview(
-  uploadId: string
+  uploadId: string,
+  mappingOverrides?: ImportPreviewMappingOverride[]
 ): Promise<ImportPreviewResponse> {
   return ImportPreviewResponseSchema.parse(
     await apiFetch<unknown>("/api/v1/import/preview", {
       method: "POST",
-      body: JSON.stringify({ upload_id: uploadId }),
+      body: JSON.stringify({
+        upload_id: uploadId,
+        mapping_overrides: mappingOverrides ?? [],
+      }),
     })
   );
 }

@@ -3,6 +3,7 @@ import { MobileTabBar } from "@/components/nav/mobile-tab-bar";
 import { SyncIndicator } from "@/components/sync/sync-indicator";
 import { ServiceWorkerRegister } from "@/components/sync/service-worker-register";
 import { SyncEngineMount } from "@/components/sync/sync-engine-mount";
+import { ConflictBanner } from "@/components/sync/conflict-banner";
 
 export default function DashboardLayout({
   children,
@@ -20,7 +21,10 @@ export default function DashboardLayout({
           <div className="hidden md:block" />
           <SyncIndicator />
         </header>
-        <main className="flex-1 px-4 pb-24 pt-6 md:px-8 md:pb-8">{children}</main>
+        <main className="flex-1 px-4 pb-24 pt-6 md:px-8 md:pb-8">
+          <ConflictBanner />
+          {children}
+        </main>
       </div>
       <MobileTabBar />
       <ServiceWorkerRegister />

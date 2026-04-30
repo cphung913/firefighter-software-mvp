@@ -6,10 +6,8 @@ from pydantic import BaseModel, Field
 
 SyncTable = Literal[
     "incidents",
-    "checklist_completions",
     "apparatus",
-    "ppe_items",
-    "scba_units",
+    "voice_logs",
 ]
 
 

@@ -1,0 +1,2 @@
+unit_id,type,year,make,model,vin,mileage,service_status
+Engine 1,Engine,2018,Pierce,Enforcer,4P1CT01N4JA000101,18420,available

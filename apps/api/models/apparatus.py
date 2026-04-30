@@ -26,7 +26,8 @@ class Apparatus(Base, UUIDPKMixin, TimestampMixin):
     make: Mapped[str | None] = mapped_column(String(64), nullable=True)
     model: Mapped[str | None] = mapped_column(String(64), nullable=True)
     vin: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    # available | responding | out_of_service
     service_status: Mapped[str] = mapped_column(
-        String(32), nullable=False, default="in_service"
+        String(32), nullable=False, default="available"
     )
     mileage: Mapped[int | None] = mapped_column(Integer, nullable=True)

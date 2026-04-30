@@ -1,8 +1,5 @@
 import Dexie, { type Table } from "dexie";
-import type {
-  ChecklistTemplateItem,
-  DepartmentRosterUser,
-} from "@vfd/shared-types";
+import type { DepartmentRosterUser } from "@vfd/shared-types";
 
 export type SyncStatus = "pending" | "syncing" | "synced" | "conflict";
 
@@ -21,10 +18,22 @@ export interface IncidentRecord extends SyncMeta {
   location_lat?: number | null;
   location_lng?: number | null;
   alarm_time?: string | null;
+  dispatch_time?: string | null;
+  en_route_time?: string | null;
   on_scene_time?: string | null;
+  controlled_time?: string | null;
   cleared_time?: string | null;
+  units_responding?: string[];
+  personnel_on_scene?: string[];
+  casualty_civilian?: number;
+  casualty_ff?: number;
   narrative?: string | null;
+  actions_taken?: string[];
+  property_use?: string | null;
   raw_data?: Record<string, unknown>;
+  sync_status?: string;
+  // Set when _sync_status === "conflict" — holds the server's version of the record
+  _conflict_server_snapshot?: Record<string, unknown> | null;
 }
 
 export interface IncidentDraftRecord {
@@ -35,27 +44,20 @@ export interface IncidentDraftRecord {
   location_lat?: string | null;
   location_lng?: string | null;
   alarm_time?: string | null;
+  dispatch_time?: string | null;
+  en_route_time?: string | null;
   on_scene_time?: string | null;
+  controlled_time?: string | null;
   cleared_time?: string | null;
+  units_responding?: string[];
+  personnel_on_scene?: string[];
+  casualty_civilian?: number;
+  casualty_ff?: number;
   narrative?: string | null;
+  actions_taken?: string[];
+  property_use?: string | null;
   raw_data: Record<string, unknown>;
   updated_at: string;
-}
-
-export interface ChecklistCompletionRecord extends SyncMeta {
-  template_id?: string | null;
-  apparatus_id?: string | null;
-  completed_at?: string | null;
-  responses?: Record<string, unknown>;
-}
-
-export interface ChecklistTemplateRecord {
-  id: string;
-  name: string;
-  type: string;
-  items: ChecklistTemplateItem[];
-  updated_at: string;
-  cached_at: string;
 }
 
 export interface DepartmentUserRecord extends DepartmentRosterUser {
@@ -73,30 +75,27 @@ export interface ApparatusRecord extends SyncMeta {
   mileage?: number | null;
 }
 
-export interface PpeItemRecord extends SyncMeta {
-  item_type: string;
-  serial_number?: string | null;
-  assigned_to?: string | null;
-  manufacture_date?: string | null;
-  purchase_date?: string | null;
-  last_inspection?: string | null;
-  retired_at?: string | null;
+export interface VoiceSessionRecord {
+  id: string;
+  session_code: string;
+  started_at: string;
+  ended_at?: string | null;
+  sync_status?: string;
+  cached_at: string;
 }
 
-export interface ScbaUnitRecord extends SyncMeta {
-  serial_number?: string | null;
-  manufacturer?: string | null;
-  assigned_to?: string | null;
-  cylinder_hydro_date?: string | null;
-  regulator_service_date?: string | null;
+export interface VoiceLogRecord extends SyncMeta {
+  session_id: string;
+  recorded_by?: string | null;
+  entry_type?: string | null;
+  audio_ref?: string | null;
+  raw_transcript?: string | null;
+  ai_extracted?: Record<string, unknown> | null;
+  review_status?: string;
+  sync_status?: string;
 }
 
-export type SyncTable =
-  | "incidents"
-  | "checklist_completions"
-  | "apparatus"
-  | "ppe_items"
-  | "scba_units";
+export type SyncTable = "incidents" | "apparatus" | "voice_logs";
 
 export type Operation = "upsert" | "delete";
 
@@ -115,54 +114,68 @@ export interface SyncStateRecord {
   last_sync_at: string | null;
 }
 
+export interface PendingAudioRecord {
+  id?: number;
+  local_clip_id: string;
+  session_id: string;
+  blob: Blob;
+  recorded_by_id?: string | null;
+  raw_transcript?: string | null;
+  entry_type?: string | null;
+  created_at: string;
+  attempts: number;
+}
+
 export class VfdLocalDb extends Dexie {
   incidents!: Table<IncidentRecord, string>;
   incident_drafts!: Table<IncidentDraftRecord, string>;
-  checklist_completions!: Table<ChecklistCompletionRecord, string>;
-  checklist_templates!: Table<ChecklistTemplateRecord, string>;
   department_users!: Table<DepartmentUserRecord, string>;
   apparatus!: Table<ApparatusRecord, string>;
-  ppe_items!: Table<PpeItemRecord, string>;
-  scba_units!: Table<ScbaUnitRecord, string>;
+  voice_sessions!: Table<VoiceSessionRecord, string>;
+  voice_logs!: Table<VoiceLogRecord, string>;
   pending_mutations!: Table<PendingMutationRecord, number>;
+  pending_audio!: Table<PendingAudioRecord, number>;
   sync_state!: Table<SyncStateRecord, string>;
 
   constructor() {
     super("vfdLocalDb");
-    this.version(1).stores({
-      incidents: "local_id, server_id, _sync_status, updated_at",
-      checklist_completions: "local_id, server_id, _sync_status, updated_at",
-      apparatus: "local_id, server_id, _sync_status, updated_at",
-      ppe_items: "local_id, server_id, _sync_status, updated_at",
-      scba_units: "local_id, server_id, _sync_status, updated_at",
-      pending_mutations: "++id, table, local_id, client_timestamp",
-      sync_state: "key",
-    });
-    this.version(2).stores({
-      incidents: "local_id, server_id, _sync_status, updated_at",
-      checklist_completions:
-        "local_id, server_id, _sync_status, updated_at, completed_at, template_id, apparatus_id",
-      checklist_templates: "id, type, updated_at, cached_at",
-      apparatus:
-        "local_id, server_id, _sync_status, updated_at, unit_id, service_status",
-      ppe_items: "local_id, server_id, _sync_status, updated_at",
-      scba_units: "local_id, server_id, _sync_status, updated_at",
-      pending_mutations: "++id, table, local_id, client_timestamp",
-      sync_state: "key",
-    });
-    this.version(3).stores({
+    this.version(4).stores({
       incidents:
         "local_id, server_id, _sync_status, updated_at, incident_number, incident_type",
       incident_drafts: "id, updated_at, incident_number",
-      checklist_completions:
-        "local_id, server_id, _sync_status, updated_at, completed_at, template_id, apparatus_id",
-      checklist_templates: "id, type, updated_at, cached_at",
       department_users: "id, name, role, cached_at",
       apparatus:
         "local_id, server_id, _sync_status, updated_at, unit_id, service_status",
-      ppe_items: "local_id, server_id, _sync_status, updated_at",
-      scba_units: "local_id, server_id, _sync_status, updated_at",
+      voice_sessions: "id, session_code, cached_at",
+      voice_logs: "local_id, server_id, _sync_status, updated_at, session_id",
       pending_mutations: "++id, table, local_id, client_timestamp",
+      sync_state: "key",
+    });
+    // v5: adds _conflict_server_snapshot field to incidents (no index change needed)
+    this.version(5).stores({
+      incidents:
+        "local_id, server_id, _sync_status, updated_at, incident_number, incident_type",
+      incident_drafts: "id, updated_at, incident_number",
+      department_users: "id, name, role, cached_at",
+      apparatus:
+        "local_id, server_id, _sync_status, updated_at, unit_id, service_status",
+      voice_sessions: "id, session_code, cached_at",
+      voice_logs: "local_id, server_id, _sync_status, updated_at, session_id",
+      pending_mutations: "++id, table, local_id, client_timestamp",
+      sync_state: "key",
+    });
+    // v6: pending_audio table for offline audio blob queue
+    this.version(6).stores({
+      incidents:
+        "local_id, server_id, _sync_status, updated_at, incident_number, incident_type",
+      incident_drafts: "id, updated_at, incident_number",
+      department_users: "id, name, role, cached_at",
+      apparatus:
+        "local_id, server_id, _sync_status, updated_at, unit_id, service_status",
+      voice_sessions: "id, session_code, cached_at",
+      voice_logs: "local_id, server_id, _sync_status, updated_at, session_id",
+      pending_mutations: "++id, table, local_id, client_timestamp",
+      pending_audio: "++id, local_clip_id, session_id, created_at",
       sync_state: "key",
     });
   }

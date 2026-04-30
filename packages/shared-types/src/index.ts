@@ -36,28 +36,6 @@ export const ApparatusSummarySchema = z.object({
 });
 export type ApparatusSummary = z.infer<typeof ApparatusSummarySchema>;
 
-export const ChecklistTemplateItemSchema = z.object({
-  id: z.string(),
-  label: z.string(),
-  description: z.string().nullable().optional(),
-});
-export type ChecklistTemplateItem = z.infer<typeof ChecklistTemplateItemSchema>;
-
-export const ChecklistTemplateSchema = z.object({
-  id: z.string().uuid(),
-  name: z.string(),
-  type: z.string(),
-  items: z.array(ChecklistTemplateItemSchema),
-  updated_at: z.string(),
-});
-export type ChecklistTemplate = z.infer<typeof ChecklistTemplateSchema>;
-
-export const ChecklistBootstrapSchema = z.object({
-  templates: z.array(ChecklistTemplateSchema),
-  apparatus: z.array(ApparatusSummarySchema),
-});
-export type ChecklistBootstrap = z.infer<typeof ChecklistBootstrapSchema>;
-
 export const DepartmentRosterUserSchema = z.object({
   id: z.string().uuid(),
   name: z.string(),
@@ -72,43 +50,78 @@ export const IncidentBootstrapSchema = z.object({
 });
 export type IncidentBootstrap = z.infer<typeof IncidentBootstrapSchema>;
 
-export const PpeAssetSchema = z.object({
-  id: z.string().uuid(),
-  local_id: z.string().nullable().optional(),
-  item_type: z.string(),
-  serial_number: z.string().nullable().optional(),
-  assigned_to: z.string().uuid().nullable().optional(),
-  manufacture_date: z.string().nullable().optional(),
-  purchase_date: z.string().nullable().optional(),
-  last_inspection: z.string().nullable().optional(),
-  retired_at: z.string().nullable().optional(),
-});
-export type PpeAsset = z.infer<typeof PpeAssetSchema>;
+// ===== Incidents =====
 
-export const ScbaAssetSchema = z.object({
-  id: z.string().uuid(),
-  local_id: z.string().nullable().optional(),
-  serial_number: z.string().nullable().optional(),
-  manufacturer: z.string().nullable().optional(),
-  assigned_to: z.string().uuid().nullable().optional(),
-  cylinder_hydro_date: z.string().nullable().optional(),
-  regulator_service_date: z.string().nullable().optional(),
+export const TaxonomyOptionSchema = z.object({
+  value: z.string(),
+  label: z.string(),
 });
-export type ScbaAsset = z.infer<typeof ScbaAssetSchema>;
+export type TaxonomyOption = z.infer<typeof TaxonomyOptionSchema>;
 
-export const AssetBootstrapSchema = z.object({
-  apparatus: z.array(ApparatusSummarySchema),
-  ppe_items: z.array(PpeAssetSchema),
-  scba_units: z.array(ScbaAssetSchema),
-  users: z.array(DepartmentRosterUserSchema),
+export const IncidentTaxonomySchema = z.object({
+  incident_types: z.array(TaxonomyOptionSchema),
+  action_taken_codes: z.array(TaxonomyOptionSchema),
+  property_use_codes: z.array(TaxonomyOptionSchema),
 });
-export type AssetBootstrap = z.infer<typeof AssetBootstrapSchema>;
+export type IncidentTaxonomy = z.infer<typeof IncidentTaxonomySchema>;
+
+export const IncidentOutSchema = z.object({
+  id: z.string().uuid(),
+  local_id: z.string().nullable(),
+  incident_number: z.string().nullable(),
+  incident_type: z.string().nullable(),
+  location_address: z.string().nullable(),
+  location_lat: z.number().nullable(),
+  location_lng: z.number().nullable(),
+  alarm_time: z.string().nullable(),
+  dispatch_time: z.string().nullable(),
+  en_route_time: z.string().nullable(),
+  on_scene_time: z.string().nullable(),
+  controlled_time: z.string().nullable(),
+  cleared_time: z.string().nullable(),
+  units_responding: z.array(z.string()),
+  personnel_on_scene: z.array(z.string()),
+  casualty_civilian: z.number(),
+  casualty_ff: z.number(),
+  narrative: z.string().nullable(),
+  actions_taken: z.array(z.string()),
+  property_use: z.string().nullable(),
+  raw_data: z.record(z.string(), z.unknown()),
+  sync_status: z.string(),
+  created_by: z.string().uuid().nullable(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+export type IncidentOut = z.infer<typeof IncidentOutSchema>;
+
+export const IncidentCreateRequestSchema = z.object({
+  local_id: z.string().nullable().optional(),
+  incident_type: z.string().nullable().optional(),
+  location_address: z.string().nullable().optional(),
+  location_lat: z.number().nullable().optional(),
+  location_lng: z.number().nullable().optional(),
+  alarm_time: z.string().nullable().optional(),
+  dispatch_time: z.string().nullable().optional(),
+  en_route_time: z.string().nullable().optional(),
+  on_scene_time: z.string().nullable().optional(),
+  controlled_time: z.string().nullable().optional(),
+  cleared_time: z.string().nullable().optional(),
+  units_responding: z.array(z.string()).optional(),
+  personnel_on_scene: z.array(z.string()).optional(),
+  casualty_civilian: z.number().optional(),
+  casualty_ff: z.number().optional(),
+  narrative: z.string().nullable().optional(),
+  actions_taken: z.array(z.string()).optional(),
+  property_use: z.string().nullable().optional(),
+  raw_data: z.record(z.string(), z.unknown()).optional(),
+});
+export type IncidentCreateRequest = z.infer<typeof IncidentCreateRequestSchema>;
+
+// ===== Imports =====
 
 export const ImportEntityTypeSchema = z.enum([
   "apparatus",
   "personnel",
-  "ppe",
-  "scba",
   "incidents",
 ]);
 export type ImportEntityType = z.infer<typeof ImportEntityTypeSchema>;
@@ -128,7 +141,24 @@ export const ImportFieldMappingSchema = z.object({
 });
 export type ImportFieldMapping = z.infer<typeof ImportFieldMappingSchema>;
 
+export const ImportFieldMappingOverrideSchema = z.object({
+  source_header: z.string(),
+  target_field: z.string().nullable(),
+});
+export type ImportFieldMappingOverride = z.infer<
+  typeof ImportFieldMappingOverrideSchema
+>;
+
+export const ImportPreviewMappingOverrideSchema = z.object({
+  section_index: z.number(),
+  mappings: z.array(ImportFieldMappingOverrideSchema),
+});
+export type ImportPreviewMappingOverride = z.infer<
+  typeof ImportPreviewMappingOverrideSchema
+>;
+
 export const ImportSectionSummarySchema = z.object({
+  section_index: z.number(),
   dataset_label: z.string(),
   entity_type: ImportEntityTypeSchema,
   row_count: z.number(),
@@ -163,6 +193,7 @@ export const ImportPreviewRowSchema = z.object({
 export type ImportPreviewRow = z.infer<typeof ImportPreviewRowSchema>;
 
 export const ImportPreviewSectionSchema = z.object({
+  section_index: z.number(),
   dataset_label: z.string(),
   entity_type: ImportEntityTypeSchema,
   mappings: z.array(ImportFieldMappingSchema),
@@ -170,6 +201,12 @@ export const ImportPreviewSectionSchema = z.object({
   warnings: z.array(z.string()),
 });
 export type ImportPreviewSection = z.infer<typeof ImportPreviewSectionSchema>;
+
+export const ImportPreviewRequestSchema = z.object({
+  upload_id: z.string(),
+  mapping_overrides: z.array(ImportPreviewMappingOverrideSchema).optional(),
+});
+export type ImportPreviewRequest = z.infer<typeof ImportPreviewRequestSchema>;
 
 export const ImportPreviewResponseSchema = z.object({
   upload_id: z.string(),
@@ -194,6 +231,31 @@ export const ImportCommitResponseSchema = z.object({
   committed_at: z.string(),
 });
 export type ImportCommitResponse = z.infer<typeof ImportCommitResponseSchema>;
+
+export const ApparatusCreateRequestSchema = z.object({
+  local_id: z.string().nullable().optional(),
+  unit_id: z.string().nullable().optional(),
+  type: z.string().nullable().optional(),
+  year: z.number().nullable().optional(),
+  make: z.string().nullable().optional(),
+  model: z.string().nullable().optional(),
+  vin: z.string().nullable().optional(),
+  mileage: z.number().nullable().optional(),
+  service_status: z.string().nullable().optional(),
+});
+export type ApparatusCreateRequest = z.infer<
+  typeof ApparatusCreateRequestSchema
+>;
+
+export const PersonnelCreateRequestSchema = z.object({
+  name: z.string(),
+  email: z.string().email().nullable().optional(),
+  role: z.string().nullable().optional(),
+  badge_number: z.string().nullable().optional(),
+});
+export type PersonnelCreateRequest = z.infer<
+  typeof PersonnelCreateRequestSchema
+>;
 
 // ===== Auth =====
 
@@ -225,10 +287,8 @@ export type SyncOperation = z.infer<typeof SyncOperation>;
 
 export const SyncTable = z.enum([
   "incidents",
-  "checklist_completions",
   "apparatus",
-  "ppe_items",
-  "scba_units",
+  "voice_logs",
 ]);
 export type SyncTable = z.infer<typeof SyncTable>;
 

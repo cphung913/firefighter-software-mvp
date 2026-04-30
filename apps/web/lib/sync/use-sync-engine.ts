@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useSession } from "next-auth/react";
 
 import { refreshPendingCount, runSync } from "./engine";
+import { seedBootstrapData } from "./bootstrap";
 import { useSyncStore } from "@/store/sync-store";
 
 const POLL_INTERVAL_MS = 30_000;
@@ -19,6 +20,7 @@ export function useSyncEngine() {
 
     const onOnline = () => {
       setOnline(true);
+      void seedBootstrapData();
       void runSync();
     };
     const onOffline = () => setOnline(false);
@@ -27,7 +29,8 @@ export function useSyncEngine() {
     window.addEventListener("offline", onOffline);
 
     void refreshPendingCount();
-    void runSync();
+    // Seed bootstrap data (apparatus + roster) on mount, then sync
+    void seedBootstrapData().then(() => runSync());
 
     const interval = window.setInterval(() => {
       void runSync();

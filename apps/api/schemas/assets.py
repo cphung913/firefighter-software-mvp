@@ -1,36 +1,32 @@
 import uuid
-from datetime import date
 
 from pydantic import BaseModel
 
-from schemas.checklist import ChecklistApparatusOut
-from schemas.incident import IncidentRosterUserOut
 
-
-class AssetPpeItemOut(BaseModel):
+class ApparatusOut(BaseModel):
     id: uuid.UUID
     local_id: str | None
-    item_type: str
-    serial_number: str | None
-    assigned_to: uuid.UUID | None
-    manufacture_date: date | None
-    purchase_date: date | None
-    last_inspection: date | None
-    retired_at: date | None
+    unit_id: str | None
+    type: str | None
+    year: int | None
+    make: str | None
+    model: str | None
+    vin: str | None
+    mileage: int | None
+    service_status: str
 
 
-class AssetScbaUnitOut(BaseModel):
-    id: uuid.UUID
-    local_id: str | None
-    serial_number: str | None
-    manufacturer: str | None
-    assigned_to: uuid.UUID | None
-    cylinder_hydro_date: date | None
-    regulator_service_date: date | None
+class ApparatusCreateRequest(BaseModel):
+    local_id: str | None = None
+    unit_id: str | None = None
+    type: str | None = None
+    year: int | None = None
+    make: str | None = None
+    model: str | None = None
+    vin: str | None = None
+    mileage: int | None = None
+    service_status: str | None = None
 
 
-class AssetBootstrapResponse(BaseModel):
-    apparatus: list[ChecklistApparatusOut]
-    ppe_items: list[AssetPpeItemOut]
-    scba_units: list[AssetScbaUnitOut]
-    users: list[IncidentRosterUserOut]
+class ApparatusStatusUpdate(BaseModel):
+    service_status: str
