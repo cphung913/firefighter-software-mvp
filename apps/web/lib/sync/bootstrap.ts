@@ -34,9 +34,11 @@ export async function seedBootstrapData(): Promise<void> {
   const now = new Date().toISOString();
 
   await db.transaction("rw", [db.apparatus, db.department_users], async () => {
-    // Seed apparatus — only update records that aren't pending local changes
+    // Seed apparatus — only update records that aren't pending local changes.
+    // Prefer the server-side local_id (so offline mutations match the right row);
+    // fall back to the server uuid for rows that have no local_id yet.
     for (const unit of data.apparatus) {
-      const localId = unit.id;
+      const localId = unit.local_id ?? unit.id;
       const existing = await db.apparatus.get(localId);
       if (existing && existing._sync_status === "pending") continue;
       await db.apparatus.put({

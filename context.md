@@ -1,5 +1,19 @@
 # VFD Platform — Claude Code Context
 
+## Build Status (Updated 2026-04-29)
+
+**MVP Status: Feature-complete.** All five core features are implemented and functional:
+- ✅ Offline-first sync engine (Dexie.js + push/pull endpoints + conflict resolution)
+- ✅ Voice capture with VAD and transcription (Web Speech API + offline queue)
+- ✅ AI coagulation (Claude Sonnet 4.6 with prompt caching)
+- ✅ NERIS incident form (all 15 fields, 30s autosave, offline-first)
+- ✅ Station dashboard (apparatus status, tap-to-cycle service status)
+- ✅ Settings / import engine (CSV/XLSX/PDF upload with preview, manual add forms)
+
+See [MVP.md](MVP.md) and [CLAUDE.md](CLAUDE.md) for detailed build status.
+
+---
+
 ## Project Overview
 
 You are building the MVP for a SaaS platform targeting **volunteer fire departments (VFDs)** — an underserved market dominated by legacy software. The product's core value props are:
@@ -119,7 +133,11 @@ firefighter-software-mvp/
 │       ├── services/
 │       │   ├── auth_service.py
 │       │   ├── assets_service.py
-│       │   └── sync_service.py
+│       │   ├── sync_service.py
+│       │   ├── extraction_service.py
+│       │   ├── import_service.py
+│       │   ├── incident_service.py
+│       │   └── voice_review_service.py
 │       └── migrations/       # Alembic
 ├── packages/
 │   └── shared-types/         # Shared TypeScript types + Zod schemas

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Radio } from "lucide-react";
+import { ChevronLeft, Radio } from "lucide-react";
 import { createSession } from "@/lib/voice/api";
 import { db } from "@/lib/db";
 import type { VoiceSessionOut } from "@/lib/voice/api";
@@ -54,7 +54,16 @@ export default function VoiceNewPage() {
   }
 
   return (
-    <div className="flex min-h-[80vh] flex-col items-center justify-center gap-8 px-4 text-center">
+    <div className="flex flex-col gap-8 px-4">
+      <div className="flex items-center">
+        <button
+          onClick={() => router.push("/dashboard")}
+          className="flex items-center gap-1 text-sm text-muted-foreground min-h-[44px] -ml-1"
+        >
+          <ChevronLeft size={18} /> Back
+        </button>
+      </div>
+      <div className="flex flex-col items-center gap-8 text-center">
       <div className="flex flex-col items-center gap-3">
         <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
           <Radio size={32} className="text-primary" />
@@ -88,6 +97,7 @@ export default function VoiceNewPage() {
       >
         Join an existing session instead
       </button>
+      </div>
     </div>
   );
 }

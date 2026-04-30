@@ -60,7 +60,7 @@ export function useRecorder(): UseRecorderReturn {
     let stream: MediaStream;
     try {
       stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-    } catch (e) {
+    } catch {
       setError("Microphone permission denied.");
       return;
     }

@@ -41,6 +41,8 @@ interface PullResponse {
 
 const BATCH_SIZE = 50;
 
+let syncInFlight = false;
+
 async function refreshPendingCount(): Promise<number> {
   const count = await db.pending_mutations.count();
   useSyncStore.getState().setPendingCount(count);
@@ -175,7 +177,8 @@ function allTableHandles() {
 
 export async function runSync(): Promise<void> {
   const store = useSyncStore.getState();
-  if (!store.online) return;
+  if (!store.online || syncInFlight) return;
+  syncInFlight = true;
   store.setStatus("syncing");
   store.setError(null);
   try {
@@ -186,6 +189,8 @@ export async function runSync(): Promise<void> {
   } catch (err) {
     store.setStatus("error");
     store.setError(err instanceof Error ? err.message : String(err));
+  } finally {
+    syncInFlight = false;
   }
 }
 

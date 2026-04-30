@@ -67,25 +67,28 @@ packages/shared-types/  # Shared TS types + Zod schemas
 
 ## Current Build Status
 
-### Done
-- Monorepo scaffold, Next.js 14 app, FastAPI app, docker-compose
-- Alembic migrations, NextAuth.js credentials provider, FastAPI JWT middleware
-- Route protection middleware, app shell (sidebar + mobile tab bar)
-- Sync status indicator (Zustand), service worker registered
-- All FastAPI routers stubbed, SQLAlchemy models defined, Pydantic schemas defined
-- Services: auth, assets, sync
+### MVP Features — Complete
+✅ **Offline-first sync engine** — Dexie.js (v6 schema), push/pull endpoints, LWW conflict resolution, sync status UI  
+✅ **Voice capture** — Recording UI, VAD (diesel/siren filters), Web Speech API transcription, offline audio queue  
+✅ **AI coagulation** — Claude Sonnet 4.6 extraction with prompt caching, NERIS field extraction, confidence scores  
+✅ **NERIS incident form** — All 15 fields (incident type, location, timeline, casualties, narrative, actions, property use), autosave 30s, offline-first mutations  
+✅ **Station dashboard** — Apparatus status cards (available/responding/OOS), tap-to-cycle, optimistic UI, offline fallback  
+
+### Supporting Infrastructure — Complete
+✅ Monorepo scaffold (pnpm workspaces), Next.js 14 + FastAPI + PostgreSQL  
+✅ Authentication — NextAuth.js credentials + JWT (FastAPI), multi-tenancy by department  
+✅ Database — SQLAlchemy async models, Alembic migrations, PostgreSQL with timezone-aware timestamps  
+✅ UI/UX — shadcn/ui, Tailwind CSS, 44px+ touch targets, loading/error/offline states on all pages  
+✅ Settings — CSV/XLSX/PDF import with header mapping UI, preview diff table, manual add modals (personnel + apparatus)  
+✅ Conflict resolution — Side-by-side diff UI, "keep mine" vs "server version" buttons  
+✅ API — All routers wired: auth, incidents, assets, voice-sessions, sync, imports  
+✅ Export — PDF incident printing with NERIS-compliant JSON serialization  
 
 ### Not Yet Built
-- Voice log UI (mic button, VAD, transcription flow)
-- Station dashboard stat cards (currently placeholder)
-- NERIS incident form (full field set)
-- Digital handover / shift log UI + sign-off flow
-- Asset registry UI detail pages
-- Migration engine UI (drag-and-drop + preview)
-- DEA dual-signature flow
-- Dexie.js IndexedDB schema + `useSyncEngine` hook
-- PDF export for incidents
-- Full-text search for shift logs
+- Digital handover / shift log UI + sign-off flow (out of MVP scope)
+- DEA dual-signature chain-of-custody (out of MVP scope)
+- Certification expiry tracking / stat cards (v2)
+- Full-text search for shift logs (v2)
 
 ---
 

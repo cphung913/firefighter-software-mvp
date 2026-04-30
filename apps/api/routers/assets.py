@@ -53,7 +53,7 @@ async def create_apparatus(
 async def update_apparatus_status(
     apparatus_id: uuid.UUID,
     body: ApparatusStatusUpdate,
-    _admin: User = Depends(require_admin),
+    _user: User = Depends(get_current_user),
     department: Department = Depends(get_current_department),
     db: AsyncSession = Depends(get_db),
 ) -> ApparatusOut:

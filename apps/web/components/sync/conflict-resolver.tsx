@@ -36,7 +36,6 @@ function formatValue(v: unknown): string {
 
 export function ConflictResolver({ record, allConflicted, onClose, onNext }: Props) {
   const serverSnapshot = (record._conflict_server_snapshot ?? {}) as Record<string, unknown>;
-  const [chosen, setChosen] = useState<"mine" | "server" | null>(null);
   const [saving, setSaving] = useState(false);
 
   const idx = allConflicted.findIndex((r) => r.local_id === record.local_id);
@@ -117,7 +116,7 @@ export function ConflictResolver({ record, allConflicted, onClose, onNext }: Pro
         <div className="px-5 py-4">
           <p className="mb-4 text-sm text-muted-foreground">
             This device and the server both have changes. Pick which version to
-            keep — your data won't be lost.
+            keep — your data won&apos;t be lost.
           </p>
 
           {/* Column headers */}

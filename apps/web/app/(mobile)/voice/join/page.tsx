@@ -2,6 +2,7 @@
 
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { ChevronLeft } from "lucide-react";
 import { joinSession } from "@/lib/voice/api";
 import { db } from "@/lib/db";
 
@@ -75,7 +76,16 @@ export default function VoiceJoinPage() {
   };
 
   return (
-    <div className="flex min-h-[80vh] flex-col items-center justify-center gap-8 px-4 text-center">
+    <div className="flex flex-col gap-8 px-4">
+      <div className="flex items-center">
+        <button
+          onClick={() => router.push("/dashboard")}
+          className="flex items-center gap-1 text-sm text-muted-foreground min-h-[44px] -ml-1"
+        >
+          <ChevronLeft size={18} /> Back
+        </button>
+      </div>
+      <div className="flex flex-col items-center gap-8 text-center">
       <div className="space-y-2">
         <h1 className="text-2xl font-bold">Join session</h1>
         <p className="text-muted-foreground text-sm">
@@ -124,6 +134,7 @@ export default function VoiceJoinPage() {
       >
         Start a new session instead
       </button>
+      </div>
     </div>
   );
 }

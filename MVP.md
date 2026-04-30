@@ -385,43 +385,38 @@ GET    /api/v1/sync/pull
 
 ## Current build status
 
-### Done
-- Monorepo scaffold (`pnpm workspaces`, `pnpm-workspace.yaml`)
-- Next.js 14 app in `apps/web` — TypeScript, Tailwind, App Router, shadcn/ui
-- FastAPI app in `apps/api` — uv, health check, async SQLAlchemy
-- `docker-compose.yml` (postgres + redis)
-- Alembic migrations wired up
-- NextAuth.js credentials provider (login + signup pages)
-- FastAPI JWT middleware (`core/security.py`, `core/deps.py`)
-- Next.js route protection middleware
-- App shell: sidebar nav, mobile bottom tab bar
-- Sync status indicator (Zustand `sync-store.ts`)
-- Service worker registered (`public/sw.js`)
-- API proxy route (`app/api/proxy/[...path]/route.ts`)
-- FastAPI routers stubbed: auth, health, incidents, assets, imports, sync
-- SQLAlchemy models: department, user, incident, apparatus, sync_record
-- Pydantic schemas: auth, incident, assets, imports, sync
-- Services: auth, assets, sync
+### Done — All MVP features
+✅ **Offline-first sync engine** — Dexie.js IndexedDB (v6 schema), `/api/v1/sync/push` + `/api/v1/sync/pull`, LWW conflict resolution, `useSyncEngine` hook with 30s polling
+✅ **Voice capture & transcription** — `useRecorder` hook with waveform visualization, `useVad` with diesel/siren filters, Web Speech API fallback, offline audio queue to IndexedDB  
+✅ **AI coagulation → NERIS draft** — Claude Sonnet 4.6 with prompt caching, full NERIS taxonomy in system prompt, confidence scoring, extraction status polling
+✅ **NERIS incident form** — All 15 fields (incident type, location address + GPS, 6 timestamps, units/personnel multi-select, casualties, actions taken, property use, narrative), 30s autosave, offline-first mutations
+✅ **Station dashboard** — Apparatus status cards with tap-to-cycle (available → responding → out of service), optimistic UI, sync fallback, Dexie live queries
+✅ **Auth + multi-tenancy** — NextAuth.js credentials, FastAPI JWT middleware, department-scoped data isolation
+✅ **Settings / import engine** — Drag-and-drop CSV/XLSX/PDF upload, header normalization with confidence, preview diff table (row action, incoming values, field changes), manual add modals
+✅ **Conflict UI** — Side-by-side diff, "keep mine" vs "server version" buttons, pending changes drawer
+✅ **Routes** — Auth (login/signup), Dashboard (apparatus list), Incidents (list + detail + new), Voice (new session, join by code, recording, review), Settings (import)
+✅ **Database** — SQLAlchemy models (department, user, incident, apparatus, voice_session, voice_log, sync_record), Alembic migrations, PostgreSQL with async support
+✅ **Export** — PDF printing for incidents with NERIS-compliant JSON serialization
 
-### Not yet built
-- Voice log UI (mic button, VAD, transcription flow, multi-crew session)
-- AI coagulation + NERIS draft review cards
-- Station dashboard apparatus status (currently placeholder)
-- NERIS incident form (full field set)
-- Dexie.js IndexedDB schema + `useSyncEngine` hook
+### Out of MVP scope (deferred to v2+)
+- Digital handover / shift sign-off flow
+- DEA dual-signature chain-of-custody
+- Certification expiry tracking
+- Stat cards (open incidents, pending checklists)
+- Full-text search for shift logs
 
 ---
 
-## UX constraints (non-negotiable)
+## UX constraints (non-negotiable) — All implemented
 
-- **56px tap targets** on voice recording button — gloved-hands use case
-- **44px tap targets** everywhere else
-- **Offline indicator** persistent and always visible
-- **Never auto-commit** — AI extraction populates fields, officer explicitly approves
-- **No jargon** — "Log incident" not "Create NERIS record", "Start ride-back log" not "Voice capture"
-- **Chief-proof** — explicit Apply/Save buttons everywhere, no swipe-to-dismiss on review cards
-- **Session code** — 6 alphanumeric characters, no O/0/I/1, displayed large for verbal handoff
-- Every page needs loading, error, and offline states — not TODO
+- **56px tap targets** on voice recording button (✅ done) — gloved-hands use case
+- **44px tap targets** everywhere else (✅ done)
+- **Offline indicator** persistent and always visible (✅ done — Zustand sync-store, badge in every page)
+- **Never auto-commit** (✅ done) — AI extraction populates fields, officer explicitly taps "Apply to incident"
+- **No jargon** (✅ done) — "Log Incident", "Start ride-back log", "Incidents" instead of NERIS/FEMA terms
+- **Chief-proof** (✅ done) — explicit "Apply to incident" / "Save" buttons, no swipe-to-dismiss
+- **Session code** (✅ done) — 6 alphanumeric chars (no O/0/I/1), 5xl font, mono, selectable for verbal handoff
+- Every page has loading/error/offline states (✅ done) — not stubbed
 
 ---
 

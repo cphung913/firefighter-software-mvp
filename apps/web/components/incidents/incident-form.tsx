@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
   AlertTriangle,
@@ -266,7 +266,6 @@ export function IncidentForm({
     return () => { cancelled = true; };
   }, [sessionStatus, draftId]);
 
-  // Autosave every 30s
   useEffect(() => {
     if (!draftLoaded || !draftId) return;
     const interval = window.setInterval(() => {
@@ -274,7 +273,7 @@ export function IncidentForm({
       void saveDraft(false);
     }, AUTOSAVE_INTERVAL_MS);
     return () => window.clearInterval(interval);
-  }, [draftLoaded, draftId]);
+  }, [draftLoaded, draftId, saveDraft]);
 
   function updateForm<K extends keyof IncidentFormState>(field: K, value: IncidentFormState[K]) {
     setForm((current) => ({ ...current, [field]: value }));
@@ -295,7 +294,7 @@ export function IncidentForm({
     setSaveError(null);
   }
 
-  async function saveDraft(showMessage: boolean) {
+  const saveDraft = useCallback(async (showMessage: boolean) => {
     if (!draftId) return;
     const snapshot = latestFormRef.current;
     const updatedAt = new Date().toISOString();
@@ -334,7 +333,7 @@ export function IncidentForm({
     } finally {
       setIsSavingDraft(false);
     }
-  }
+  }, [draftId]);
 
   async function captureLocation() {
     if (!("geolocation" in navigator)) {

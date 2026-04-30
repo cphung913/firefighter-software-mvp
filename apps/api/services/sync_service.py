@@ -40,6 +40,7 @@ TABLE_REGISTRY: dict[str, type[Base]] = {
 
 PROTECTED_FIELDS = {
     "id",
+    "local_id",
     "department_id",
     "created_at",
     "updated_at",

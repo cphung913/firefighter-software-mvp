@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ChevronLeft, Check, AlertCircle, Loader2, FileText, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { apiFetch } from "@/lib/api/client"; // used for incidents list + PATCH/POST
+import { apiFetch, ApiError } from "@/lib/api/client"; // used for incidents list + PATCH/POST
 import {
   extractSession,
   approveSession,
@@ -246,7 +246,13 @@ export default function VoiceReviewPage() {
   useEffect(() => {
     extractSession(sessionId)
       .then(applyExtraction)
-      .catch(() => setLoadError("Could not start extraction. Check connection and try again."));
+      .catch((err: unknown) => {
+        if (err instanceof ApiError && err.status === 404) {
+          setLoadError("No recordings found for this session. Go back and record at least one clip before reviewing.");
+        } else {
+          setLoadError("Could not start extraction. Check connection and try again.");
+        }
+      });
   }, [sessionId, applyExtraction]);
 
   // Poll while extracting — re-POST is idempotent (router short-circuits on "extracting" status)

@@ -1,19 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { FileOutput, Loader2, Plus, Siren } from "lucide-react";
 import Link from "next/link";
-import { useSession } from "next-auth/react";
 
 import { Button, buttonVariants } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import type { IncidentRecord } from "@/lib/db";
 import { db } from "@/lib/db";
@@ -22,16 +15,11 @@ import {
   NERIS_INCIDENT_TYPES,
   PROPERTY_USE_OPTIONS,
 } from "@/lib/incidents/options";
-import { runSync } from "@/lib/sync/engine";
 import { useSyncStore } from "@/store/sync-store";
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-function pad(v: number) {
-  return v.toString().padStart(2, "0");
-}
 
 function formatTimestamp(value?: string | null): string {
   if (!value) return "—";
@@ -84,11 +72,11 @@ const EMPTY_LIST: IncidentRecord[] = [];
 // ---------------------------------------------------------------------------
 
 export function IncidentsList() {
-  const { status: sessionStatus } = useSession();
   const online = useSyncStore((state) => state.online);
   const pendingCount = useSyncStore((state) => state.pendingCount);
   const lastSyncAt = useSyncStore((state) => state.lastSyncAt);
-  const [isSyncing, setIsSyncing] = useState(false);
+  const syncStatus = useSyncStore((state) => state.status);
+  const isSyncing = syncStatus === "syncing";
   const [exportError, setExportError] = useState<string | null>(null);
 
   const incidents = useLiveQuery(
@@ -97,13 +85,6 @@ export function IncidentsList() {
   );
 
   const incidentList = incidents ?? EMPTY_LIST;
-
-  // Initial sync on mount when online
-  useEffect(() => {
-    if (sessionStatus !== "authenticated" || !online) return;
-    setIsSyncing(true);
-    runSync().finally(() => setIsSyncing(false));
-  }, [sessionStatus, online]);
 
   function handleExport(incident: IncidentRecord) {
     try {
