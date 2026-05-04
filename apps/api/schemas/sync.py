@@ -8,6 +8,9 @@ SyncTable = Literal[
     "incidents",
     "apparatus",
     "voice_logs",
+    "equipment",
+    "equipment_inspections",
+    "equipment_maintenance",
 ]
 
 

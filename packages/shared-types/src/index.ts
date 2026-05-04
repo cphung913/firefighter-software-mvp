@@ -289,6 +289,9 @@ export const SyncTable = z.enum([
   "incidents",
   "apparatus",
   "voice_logs",
+  "equipment",
+  "equipment_inspections",
+  "equipment_maintenance",
 ]);
 export type SyncTable = z.infer<typeof SyncTable>;
 
@@ -345,3 +348,70 @@ export const SyncPullResponseSchema = z.object({
   server_time: z.string(),
 });
 export type SyncPullResponse = z.infer<typeof SyncPullResponseSchema>;
+
+// ===== Equipment =====
+
+export const EquipmentSchema = z.object({
+  id: z.string().uuid(),
+  local_id: z.string().nullable().optional(),
+  equipment_type: z.string(),
+  identifier: z.string().nullable().optional(),
+  name: z.string().nullable().optional(),
+  manufacturer: z.string().nullable().optional(),
+  model: z.string().nullable().optional(),
+  year_manufactured: z.number().nullable().optional(),
+  assigned_apparatus_id: z.string().uuid().nullable().optional(),
+  status: z.string(),
+  purchase_date: z.string().nullable().optional(),
+  notes: z.string().nullable().optional(),
+  raw_data: z.record(z.string(), z.unknown()).nullable().optional(),
+  next_inspection_due: z.string().nullable().optional(),
+  last_inspection_date: z.string().nullable().optional(),
+});
+export type Equipment = z.infer<typeof EquipmentSchema>;
+
+export const EquipmentCreateRequestSchema = z.object({
+  local_id: z.string().nullable().optional(),
+  equipment_type: z.string().optional(),
+  identifier: z.string().nullable().optional(),
+  name: z.string().nullable().optional(),
+  manufacturer: z.string().nullable().optional(),
+  model: z.string().nullable().optional(),
+  year_manufactured: z.number().nullable().optional(),
+  assigned_apparatus_id: z.string().uuid().nullable().optional(),
+  status: z.string().optional(),
+  purchase_date: z.string().nullable().optional(),
+  notes: z.string().nullable().optional(),
+  raw_data: z.record(z.string(), z.unknown()).nullable().optional(),
+});
+export type EquipmentCreateRequest = z.infer<typeof EquipmentCreateRequestSchema>;
+
+export const EquipmentInspectionSchema = z.object({
+  id: z.string().uuid(),
+  local_id: z.string().nullable().optional(),
+  equipment_id: z.string().uuid().nullable().optional(),
+  equipment_local_id: z.string().nullable().optional(),
+  inspection_type: z.string().nullable().optional(),
+  inspection_date: z.string().nullable().optional(),
+  passed: z.boolean(),
+  inspector_name: z.string().nullable().optional(),
+  notes: z.string().nullable().optional(),
+  next_due: z.string().nullable().optional(),
+  raw_data: z.record(z.string(), z.unknown()).nullable().optional(),
+});
+export type EquipmentInspection = z.infer<typeof EquipmentInspectionSchema>;
+
+export const EquipmentMaintenanceSchema = z.object({
+  id: z.string().uuid(),
+  local_id: z.string().nullable().optional(),
+  equipment_id: z.string().uuid().nullable().optional(),
+  equipment_local_id: z.string().nullable().optional(),
+  maintenance_type: z.string().nullable().optional(),
+  maintenance_date: z.string().nullable().optional(),
+  performed_by: z.string().nullable().optional(),
+  cost: z.number().nullable().optional(),
+  description: z.string().nullable().optional(),
+  out_of_service_start: z.string().nullable().optional(),
+  out_of_service_end: z.string().nullable().optional(),
+});
+export type EquipmentMaintenance = z.infer<typeof EquipmentMaintenanceSchema>;

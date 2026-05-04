@@ -4,12 +4,10 @@ import {
   Siren,
   Radio,
   Truck,
-  Droplets,
+  Wrench,
   FileText,
   ClipboardCheck,
   Award,
-  CalendarDays,
-  CreditCard,
   Settings,
 } from "lucide-react";
 
@@ -34,7 +32,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { href: "/incidents", label: "Incidents", icon: Siren, badge: 3 },
       { href: "/dispatch", label: "Dispatch", icon: Radio },
       { href: "/apparatus", label: "Apparatus", icon: Truck },
-      { href: "/hydrants", label: "Hydrants", icon: Droplets },
+      { href: "/equipment", label: "Equipment", icon: Wrench },
     ],
   },
   {
@@ -43,14 +41,6 @@ export const NAV_GROUPS: NavGroup[] = [
       { href: "/reports", label: "Reports", icon: FileText },
       { href: "/inspections", label: "Inspections", icon: ClipboardCheck },
       { href: "/training", label: "Training", icon: Award },
-    ],
-  },
-  {
-    label: "Scheduling",
-    beta: true,
-    items: [
-      { href: "/calendar", label: "Calendar", icon: CalendarDays },
-      { href: "/payroll", label: "Payroll", icon: CreditCard },
     ],
   },
 ];

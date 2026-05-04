@@ -128,7 +128,7 @@ export function ApparatusList() {
             Apparatus
           </h1>
           <p className="font-body text-[var(--bone-dim)]">
-            Fleet status and availability. Tap any unit to cycle its status.
+            Fleet status and availability. Expand any unit to update its status.
           </p>
         </div>
         <Button onClick={openModal}>

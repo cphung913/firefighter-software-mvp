@@ -75,6 +75,46 @@ export interface ApparatusRecord extends SyncMeta {
   mileage?: number | null;
 }
 
+export interface EquipmentRecord extends SyncMeta {
+  equipment_type?: string;
+  identifier?: string | null;
+  name?: string | null;
+  manufacturer?: string | null;
+  model?: string | null;
+  year_manufactured?: number | null;
+  assigned_apparatus_id?: string | null;
+  status?: string; // in_service | out_of_service | retired
+  purchase_date?: string | null;
+  notes?: string | null;
+  raw_data?: Record<string, unknown>;
+  next_inspection_due?: string | null;
+  last_inspection_date?: string | null;
+}
+
+export interface EquipmentInspectionRecord extends SyncMeta {
+  equipment_id?: string | null;       // server UUID of parent
+  equipment_local_id?: string | null; // local_id of parent (offline join key)
+  inspection_type?: string | null;
+  inspection_date?: string | null;
+  passed?: boolean;
+  inspector_name?: string | null;
+  notes?: string | null;
+  next_due?: string | null;
+  raw_data?: Record<string, unknown>;
+}
+
+export interface EquipmentMaintenanceRecord extends SyncMeta {
+  equipment_id?: string | null;
+  equipment_local_id?: string | null;
+  maintenance_type?: string | null;
+  maintenance_date?: string | null;
+  performed_by?: string | null;
+  cost?: number | null;
+  description?: string | null;
+  out_of_service_start?: string | null;
+  out_of_service_end?: string | null;
+}
+
 export interface VoiceSessionRecord {
   id: string;
   session_code: string;
@@ -95,7 +135,7 @@ export interface VoiceLogRecord extends SyncMeta {
   sync_status?: string;
 }
 
-export type SyncTable = "incidents" | "apparatus" | "voice_logs";
+export type SyncTable = "incidents" | "apparatus" | "voice_logs" | "equipment" | "equipment_inspections" | "equipment_maintenance";
 
 export type Operation = "upsert" | "delete";
 
@@ -131,6 +171,9 @@ export class VfdLocalDb extends Dexie {
   incident_drafts!: Table<IncidentDraftRecord, string>;
   department_users!: Table<DepartmentUserRecord, string>;
   apparatus!: Table<ApparatusRecord, string>;
+  equipment!: Table<EquipmentRecord, string>;
+  equipment_inspections!: Table<EquipmentInspectionRecord, string>;
+  equipment_maintenance!: Table<EquipmentMaintenanceRecord, string>;
   voice_sessions!: Table<VoiceSessionRecord, string>;
   voice_logs!: Table<VoiceLogRecord, string>;
   pending_mutations!: Table<PendingMutationRecord, number>;
@@ -172,6 +215,26 @@ export class VfdLocalDb extends Dexie {
       department_users: "id, name, role, cached_at",
       apparatus:
         "local_id, server_id, _sync_status, updated_at, unit_id, service_status",
+      voice_sessions: "id, session_code, cached_at",
+      voice_logs: "local_id, server_id, _sync_status, updated_at, session_id",
+      pending_mutations: "++id, table, local_id, client_timestamp",
+      pending_audio: "++id, local_clip_id, session_id, created_at",
+      sync_state: "key",
+    });
+    // v7: equipment inventory, inspections, and maintenance tables
+    this.version(7).stores({
+      incidents:
+        "local_id, server_id, _sync_status, updated_at, incident_number, incident_type",
+      incident_drafts: "id, updated_at, incident_number",
+      department_users: "id, name, role, cached_at",
+      apparatus:
+        "local_id, server_id, _sync_status, updated_at, unit_id, service_status",
+      equipment:
+        "local_id, server_id, _sync_status, updated_at, equipment_type, status, next_inspection_due",
+      equipment_inspections:
+        "local_id, server_id, _sync_status, updated_at, equipment_local_id, inspection_date",
+      equipment_maintenance:
+        "local_id, server_id, _sync_status, updated_at, equipment_local_id, maintenance_date",
       voice_sessions: "id, session_code, cached_at",
       voice_logs: "local_id, server_id, _sync_status, updated_at, session_id",
       pending_mutations: "++id, table, local_id, client_timestamp",

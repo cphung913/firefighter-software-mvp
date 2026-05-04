@@ -464,8 +464,8 @@ export default function Home() {
               },
               {
                 num: "02 / DUTY",
-                title: "Roster & Scheduling",
-                desc: "Shift swaps, point systems, attendance tracking, mutual aid logging. Built for volunteer pages and combination duty crews alike.",
+                title: "Dispatch Management",
+                desc: "Manage dispatches, track crew availability, and run shift rosters that sync with your CAD. No more group texts to find a driver for the next call.",
                 badge: null,
                 amber: true,
               },
@@ -478,7 +478,7 @@ export default function Home() {
               },
               {
                 num: "04 / RIG",
-                title: "Apparatus & Gear",
+                title: "Equipment & Apparatus",
                 desc: "Daily checks, hose testing, SCBA flow tests, NFPA 1851 turnout-gear lifecycle. Out-of-service flags follow the truck across modules.",
                 badge: null,
                 amber: true,
@@ -491,9 +491,9 @@ export default function Home() {
                 amber: false,
               },
               {
-                num: "06 / EMS",
-                title: "EMS & Patient Care",
-                desc: "NEMSIS 3.5 reports, protocols, controlled-substance log. HIPAA-aligned. Imports from major monitor brands so you don't double-chart.",
+                num: "06 / Cert",
+                title: "Certifications & Reports",
+                desc: "NEMSIS 3.5 reports, HIPAA-aligned EMS records, and a training-cert tracking system that keeps your crew compliant.",
                 badge: null,
                 amber: true,
               },

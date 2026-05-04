@@ -70,7 +70,7 @@ html {
 
 html,
 body {
-  background: var(--bone);
+  background: var(--ink);
   color: var(--ink);
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;

@@ -20,6 +20,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.apparatus import Apparatus
 from models.base import Base
+from models.equipment import Equipment, EquipmentInspection, EquipmentMaintenance
 from models.incident import Incident
 from models.sync_record import SyncRecord
 from models.voice_log import VoiceLog
@@ -36,7 +37,13 @@ TABLE_REGISTRY: dict[str, type[Base]] = {
     "incidents": Incident,
     "apparatus": Apparatus,
     "voice_logs": VoiceLog,
+    "equipment": Equipment,
+    "equipment_inspections": EquipmentInspection,
+    "equipment_maintenance": EquipmentMaintenance,
 }
+
+# Child tables that need their parent FK resolved from equipment_local_id → equipment_id
+EQUIPMENT_CHILD_TABLES = {"equipment_inspections", "equipment_maintenance"}
 
 PROTECTED_FIELDS = {
     "id",
@@ -139,6 +146,19 @@ async def apply_push(
             clean["created_by"] = user_id
         if mutation.table == "voice_logs" and "recorded_by" not in clean:
             clean["recorded_by"] = user_id
+
+        # Resolve equipment_local_id → equipment_id for child tables
+        if mutation.table in EQUIPMENT_CHILD_TABLES and "equipment_id" not in clean:
+            eq_local_id = mutation.data.get("equipment_local_id")
+            if eq_local_id:
+                parent = await db.scalar(
+                    select(Equipment).where(
+                        Equipment.department_id == department_id,
+                        Equipment.local_id == eq_local_id,
+                    )
+                )
+                if parent is not None:
+                    clean["equipment_id"] = parent.id
 
         if existing is None:
             new_obj = model_cls(  # type: ignore[call-arg]
