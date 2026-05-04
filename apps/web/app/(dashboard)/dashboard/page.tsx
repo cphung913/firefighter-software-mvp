@@ -74,123 +74,6 @@ function StatBlock({
   );
 }
 
-function StatusBoard({
-  activeDispatches,
-  rosterCount,
-  availableApparatus,
-  totalApparatus,
-}: {
-  activeDispatches: number;
-  rosterCount: number;
-  availableApparatus: number;
-  totalApparatus: number;
-}) {
-  return (
-    <div
-      className="-mx-4 md:-mx-8 -mt-6 relative overflow-hidden"
-      style={{
-        background: "var(--ink)",
-        borderBottom: "1px solid var(--rule)",
-        padding: "18px 24px",
-      }}
-    >
-      <div
-        className="absolute left-0 top-0 bottom-0 w-[6px]"
-        style={{
-          background:
-            "repeating-linear-gradient(45deg, var(--signal) 0 10px, var(--ink) 10px 20px)",
-          opacity: 0.4,
-        }}
-      />
-      <div className="flex flex-wrap items-center gap-7 pl-3">
-        <div className="flex flex-col gap-1 shrink-0">
-          <span
-            className="font-mono text-[10px] tracking-[0.18em] uppercase"
-            style={{ color: "#7a786f" }}
-          >
-            Shift Clock
-          </span>
-          <LiveClock />
-          <span
-            className="font-display text-[11px] tracking-[0.18em] uppercase"
-            style={{ color: "var(--signal)" }}
-          >
-            B-SHIFT
-          </span>
-        </div>
-
-        <div
-          className="pl-6 shrink-0"
-          style={{ borderLeft: "1px solid var(--rule)" }}
-        >
-          <h1 className="font-display font-semibold text-[32px] tracking-[0.04em] uppercase leading-none text-[var(--bone)] mb-1.5">
-            Dashboard
-          </h1>
-          <div
-            className="font-mono text-[11.5px] tracking-[0.04em]"
-            style={{ color: "#7a786f" }}
-          >
-            Station 14 ·{" "}
-            <span className="font-mono" style={{ color: "var(--bone-dim)" }}>
-              Springfield, NY
-            </span>
-          </div>
-        </div>
-
-        <StatBlock label="Open Calls" sub="active dispatches">
-          <span style={{ color: activeDispatches > 0 ? "var(--signal)" : "var(--bone)" }}>
-            {String(activeDispatches).padStart(2, "0")}
-          </span>
-        </StatBlock>
-
-        <StatBlock label="Roster" sub="registered personnel">
-          <span className="text-[var(--bone)]">{rosterCount}</span>
-        </StatBlock>
-
-        <StatBlock
-          label="Fleet"
-          sub={`${totalApparatus - availableApparatus} unavailable`}
-        >
-          <span style={{ color: "var(--green)" }}>
-            {availableApparatus}
-            <span className="font-display" style={{ fontSize: 13, color: "#7a786f" }}>
-              /{totalApparatus}
-            </span>
-          </span>
-        </StatBlock>
-
-        <div
-          className="ml-auto flex items-center gap-2 pl-[14px] shrink-0"
-          style={{ borderLeft: "1px solid var(--rule)" }}
-        >
-          <Link
-            href="/incidents/new"
-            className="inline-flex items-center gap-2 px-4 py-2 font-display font-semibold text-[12px] tracking-[0.16em] uppercase text-[var(--bone)] transition-colors"
-            style={{
-              background: "var(--signal)",
-              border: "1px solid var(--signal)",
-              borderRadius: "3px",
-            }}
-          >
-            <svg
-              className="w-4 h-4"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M12 5v14M5 12h14" />
-            </svg>
-            New Report
-          </Link>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ─── Card primitives ──────────────────────────────────────────────────────────
 
 function Card({
@@ -726,25 +609,10 @@ export default function DashboardPage() {
 
   useEffect(() => { setMounted(true); }, []);
 
-  const activeDispatches = useLiveQuery(
-    () => db.incidents.filter((i) => !!i.dispatch_time && !i.cleared_time).count(),
-    []
-  );
-  const rosterCount = useLiveQuery(() => db.department_users.count(), []);
-  const apparatus   = useLiveQuery(() => db.apparatus.toArray(), []);
-
-  const availableApparatus = (apparatus ?? []).filter((u) => (u.service_status ?? "available") === "available").length;
-
   if (!mounted) return <PageSkeleton />;
 
   return (
     <div>
-      {/* <StatusBoard
-        activeDispatches={activeDispatches ?? 0}
-        rosterCount={rosterCount ?? 0}
-        availableApparatus={availableApparatus}
-        totalApparatus={(apparatus ?? []).length}
-      /> */}
       <div className="grid grid-cols-12 gap-[14px] pt-[18px] pb-9">
         <FleetStatusCard />
         <DispatchesCard />
