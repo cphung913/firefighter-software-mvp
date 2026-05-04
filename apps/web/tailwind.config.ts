@@ -52,6 +52,9 @@ const config: Config = {
       },
       fontFamily: {
         sans: ["var(--font-sans)", "system-ui", "sans-serif"],
+        display: ["var(--font-display)", "Impact", "Arial Narrow", "sans-serif"],
+        body: ["var(--font-body)", "Source Sans Pro", "system-ui", "sans-serif"],
+        mono: ["var(--font-mono)", "Menlo", "Consolas", "monospace"],
       },
     },
   },

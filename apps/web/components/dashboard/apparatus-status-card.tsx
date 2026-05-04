@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { Card, CardContent } from "@/components/ui/card";
 import { db, type ApparatusRecord } from "@/lib/db";
 import { updateApparatusStatus } from "@/lib/assets/api";
+import { cn } from "@/lib/utils";
 
 type ServiceStatus = "available" | "responding" | "out_of_service";
 
@@ -15,16 +15,16 @@ const STATUS_LABEL: Record<ServiceStatus, string> = {
   out_of_service: "Out of Service",
 };
 
-const STATUS_COLOR: Record<ServiceStatus, string> = {
+const STATUS_DOT: Record<ServiceStatus, string> = {
   available: "bg-green-500",
-  responding: "bg-yellow-400",
-  out_of_service: "bg-red-500",
+  responding: "bg-[var(--amber)]",
+  out_of_service: "bg-[var(--signal)]",
 };
 
 const STATUS_TEXT: Record<ServiceStatus, string> = {
-  available: "text-green-700 dark:text-green-400",
-  responding: "text-yellow-700 dark:text-yellow-400",
-  out_of_service: "text-red-700 dark:text-red-400",
+  available: "text-green-400",
+  responding: "text-[var(--amber)]",
+  out_of_service: "text-[var(--signal)]",
 };
 
 interface Props {
@@ -106,27 +106,32 @@ export function ApparatusStatusCard({ unit, isOffline }: Props) {
   }
 
   return (
-    <Card
-      className={`cursor-pointer select-none transition-opacity ${isPending ? "opacity-60" : ""}`}
+    <div
+      className={cn(
+        "border border-[var(--rule)] bg-[var(--steel-2)] cursor-pointer select-none transition-[background-color] duration-150 hover:bg-[#14171c] flex items-center gap-4 p-4 min-h-[72px]",
+        isPending && "opacity-60"
+      )}
       onClick={handleTap}
       role="button"
       aria-label={`${displayName} — ${STATUS_LABEL[status]}. Tap to change status.`}
     >
-      <CardContent className="flex items-center gap-4 p-4 min-h-[72px]">
-        <span
-          className={`inline-block h-4 w-4 shrink-0 rounded-full ${STATUS_COLOR[status]}`}
-          aria-hidden
-        />
-        <div className="flex-1 min-w-0">
-          <p className="truncate font-medium leading-tight">{displayName}</p>
-          {unit.type && (
-            <p className="text-xs text-muted-foreground truncate">{unit.type}</p>
-          )}
-        </div>
-        <span className={`text-sm font-semibold shrink-0 ${STATUS_TEXT[status]}`}>
-          {STATUS_LABEL[status]}
-        </span>
-      </CardContent>
-    </Card>
+      <span
+        className={cn("inline-block h-3 w-3 shrink-0 rounded-full", STATUS_DOT[status])}
+        aria-hidden
+      />
+      <div className="flex-1 min-w-0">
+        <p className="truncate font-mono text-[13px] uppercase tracking-[0.14em] text-[var(--bone)] leading-tight">
+          {displayName}
+        </p>
+        {unit.type && (
+          <p className="truncate font-mono text-[10.5px] uppercase tracking-[0.14em] text-[var(--bone-dim)]">
+            {unit.type}
+          </p>
+        )}
+      </div>
+      <span className={cn("font-mono text-[10.5px] uppercase tracking-[0.14em] shrink-0", STATUS_TEXT[status])}>
+        {STATUS_LABEL[status]}
+      </span>
+    </div>
   );
 }

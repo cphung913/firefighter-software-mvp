@@ -222,7 +222,7 @@ export function incidentRecordToForm(record: IncidentRecord): IncidentFormState 
 
 function FieldError({ message }: { message: string | null | undefined }) {
   if (!message) return null;
-  return <p className="mt-1 text-sm text-destructive">{message}</p>;
+  return <p className="mt-1 font-body text-[13px] text-[var(--signal)]">{message}</p>;
 }
 
 // ---------------------------------------------------------------------------
@@ -588,8 +588,8 @@ export function IncidentForm({
 
   if (isBootstrapping && !hasCachedResources) {
     return (
-      <div className="flex min-h-[320px] items-center justify-center rounded-lg border border-dashed">
-        <div className="flex items-center gap-3 text-muted-foreground">
+      <div className="flex min-h-[320px] items-center justify-center border border-[var(--rule)]">
+        <div className="flex items-center gap-3 font-body text-[var(--bone-dim)]">
           <Loader2 className="h-5 w-5 animate-spin" />
           Loading apparatus and roster...
         </div>
@@ -599,11 +599,11 @@ export function IncidentForm({
 
   if (!isBootstrapping && !hasCachedResources) {
     return (
-      <div className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
+      <div className="border border-[var(--rule)] p-6 font-body text-[14px] text-[var(--bone-dim)]">
         <div className="flex items-start gap-3">
-          <CloudOff className="mt-0.5 h-5 w-5 text-primary" />
+          <CloudOff className="mt-0.5 h-5 w-5 text-[var(--signal)]" />
           <div className="space-y-1">
-            <p className="font-medium text-foreground">This device needs one connected visit first.</p>
+            <p className="font-medium text-[var(--bone)]">This device needs one connected visit first.</p>
             <p>Once apparatus and responders are cached, the form works offline.</p>
           </div>
         </div>
@@ -631,24 +631,24 @@ export function IncidentForm({
                   type="button"
                   onClick={() => setCurrentStep(step.id as StepId)}
                   aria-current={isActive ? "step" : undefined}
-                  className="flex flex-col items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded"
+                  className="flex flex-col items-center gap-1.5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--signal)]"
                 >
                   <span
                     className={cn(
-                      "flex h-8 w-8 items-center justify-center rounded-full border-2 text-xs font-semibold transition-colors",
-                      isActive  && "border-primary bg-primary text-primary-foreground",
-                      isComplete && "border-green-600 bg-green-600 text-white",
-                      hasError   && "border-destructive bg-destructive text-destructive-foreground",
-                      !isActive && !isComplete && !hasError && "border-border bg-background text-muted-foreground"
+                      "flex h-7 w-7 items-center justify-center font-mono text-[12px] transition-colors",
+                      isActive  && "bg-[var(--signal)] text-[var(--bone)]",
+                      isComplete && "bg-green-600 text-white",
+                      hasError   && "border border-[var(--signal)] text-[var(--signal)]",
+                      !isActive && !isComplete && !hasError && "border border-[#d6cfbf] text-[#4a4842]"
                     )}
                   >
                     {isComplete ? <Check className="h-3.5 w-3.5" /> : step.id}
                   </span>
                   <span
                     className={cn(
-                      "hidden text-xs sm:block",
-                      isActive   ? "font-medium text-foreground" : "text-muted-foreground",
-                      hasError   && "text-destructive"
+                      "hidden font-mono text-[9px] uppercase tracking-[0.14em] sm:block",
+                      isActive   ? "text-[var(--ink)]" : "text-[#4a4842]",
+                      hasError   && "text-[var(--signal)]"
                     )}
                   >
                     {step.label}
@@ -656,7 +656,7 @@ export function IncidentForm({
                 </button>
               </li>
               {!isLast && (
-                <div className="mx-2 h-0.5 flex-1 bg-border" aria-hidden />
+                <div className="mx-2 h-px flex-1 bg-[#d6cfbf]" aria-hidden />
               )}
             </Fragment>
           );
@@ -674,7 +674,7 @@ export function IncidentForm({
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="incident-number">
-            Incident number <span className="text-destructive">*</span>
+            Incident number <span className="text-[var(--signal)]">*</span>
           </Label>
           <Input
             id="incident-number"
@@ -683,13 +683,12 @@ export function IncidentForm({
             onBlur={() => handleBlur("incident_number")}
             aria-invalid={!!fieldErrors.incident_number}
             aria-describedby={fieldErrors.incident_number ? "err-incident-number" : undefined}
-            className={cn("h-11", fieldErrors.incident_number && "border-destructive focus-visible:ring-destructive")}
           />
           <FieldError message={fieldErrors.incident_number} />
         </div>
         <div className="space-y-2">
           <Label htmlFor="incident-type">
-            Incident type <span className="text-destructive">*</span>
+            Incident type <span className="text-[var(--signal)]">*</span>
           </Label>
           <select
             id="incident-type"
@@ -697,10 +696,7 @@ export function IncidentForm({
             onChange={(e) => updateForm("incident_type", e.target.value)}
             onBlur={() => handleBlur("incident_type")}
             aria-invalid={!!fieldErrors.incident_type}
-            className={cn(
-              "flex h-11 w-full rounded-md border border-input bg-background px-3 text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              fieldErrors.incident_type && "border-destructive focus-visible:ring-destructive"
-            )}
+            className="h-11 w-full border-0 border-b border-b-[var(--steel)] bg-transparent px-0 py-2 font-body text-[15px] text-[var(--ink)] focus:outline-none focus:border-b-[var(--signal)]"
           >
             <option value="">Select incident type</option>
             {NERIS_INCIDENT_TYPES.map((opt) => (
@@ -716,8 +712,8 @@ export function IncidentForm({
   const step2 = currentStep === 2 && (
     <div className="space-y-6">
       <div className="space-y-4">
-        <p className="text-sm font-medium text-foreground">
-          Location <span className="text-destructive">*</span>
+        <p className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-[#4a4842]">
+          Location <span className="text-[var(--signal)]">*</span>
         </p>
         <div className="space-y-2">
           <Label htmlFor="location-address">Address</Label>
@@ -728,7 +724,6 @@ export function IncidentForm({
             onChange={(e) => updateForm("location_address", e.target.value)}
             onBlur={handleLocationBlur}
             aria-invalid={!!fieldErrors.location}
-            className={cn("h-11", fieldErrors.location && "border-destructive focus-visible:ring-destructive")}
           />
         </div>
         <div className="flex flex-wrap items-center gap-3">
@@ -739,7 +734,7 @@ export function IncidentForm({
               <><Crosshair className="h-4 w-4" />Use current GPS</>
             )}
           </Button>
-          {locationMessage ? <span className="text-sm text-emerald-700">{locationMessage}</span> : null}
+          {locationMessage ? <span className="font-body text-[13px] text-green-700">{locationMessage}</span> : null}
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
@@ -749,7 +744,6 @@ export function IncidentForm({
               value={form.location_lat}
               onChange={(e) => updateForm("location_lat", e.target.value)}
               onBlur={handleLocationBlur}
-              className={cn("h-11", fieldErrors.location && "border-destructive")}
             />
           </div>
           <div className="space-y-2">
@@ -759,21 +753,20 @@ export function IncidentForm({
               value={form.location_lng}
               onChange={(e) => updateForm("location_lng", e.target.value)}
               onBlur={handleLocationBlur}
-              className={cn("h-11", fieldErrors.location && "border-destructive")}
             />
           </div>
         </div>
         <FieldError message={fieldErrors.location} />
       </div>
 
-      <div className="space-y-4 border-t pt-6">
-        <p className="text-sm font-medium text-foreground">Timeline</p>
+      <div className="space-y-4 border-t border-[#d6cfbf] pt-6">
+        <p className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-[#4a4842]">Timeline</p>
         <div className="grid gap-4 sm:grid-cols-2">
           {TIMELINE_ROWS.map(({ id, label, field, required }) => (
             <div key={id} className="space-y-2">
               <Label htmlFor={id}>
                 {label}
-                {required && <span className="text-destructive"> *</span>}
+                {required && <span className="text-[var(--signal)]"> *</span>}
               </Label>
               <Input
                 id={id}
@@ -782,7 +775,6 @@ export function IncidentForm({
                 onChange={(e) => updateForm(field, e.target.value)}
                 onBlur={required ? () => handleBlur(field) : undefined}
                 aria-invalid={required ? !!fieldErrors[field] : undefined}
-                className={cn("h-11", required && fieldErrors[field] && "border-destructive focus-visible:ring-destructive")}
               />
               {required && <FieldError message={fieldErrors[field] as string | null} />}
             </div>
@@ -795,8 +787,8 @@ export function IncidentForm({
   const step3 = currentStep === 3 && (
     <div className="space-y-6">
       <div className="space-y-4">
-        <p className="text-sm font-medium text-foreground">
-          Units responding <span className="text-destructive">*</span>
+        <p className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-[#4a4842]">
+          Units responding <span className="text-[var(--signal)]">*</span>
         </p>
         <div className="grid gap-3 sm:grid-cols-2">
           {apparatusList.map((unit) => {
@@ -808,16 +800,16 @@ export function IncidentForm({
                 type="button"
                 onClick={() => toggleSelection("units_responding", key)}
                 className={cn(
-                  "min-h-[76px] rounded-lg border px-4 py-4 text-left transition-colors",
+                  "min-h-[72px] border px-4 py-3.5 text-left transition-colors",
                   selected
-                    ? "border-primary bg-primary/5"
+                    ? "border-[var(--signal)] bg-[rgba(200,54,44,0.05)]"
                     : fieldErrors.units_responding
-                    ? "border-destructive/40 hover:bg-muted"
-                    : "hover:bg-muted"
+                    ? "border-[var(--signal)]/40 hover:bg-[#ede8de]"
+                    : "border-[#d6cfbf] hover:bg-[#ede8de]"
                 )}
               >
-                <div className="font-medium">{unit.unit_id ?? "Department apparatus"}</div>
-                <div className="mt-1 text-sm text-muted-foreground">
+                <div className="font-mono text-[13px] uppercase tracking-[0.08em] text-[var(--ink)]">{unit.unit_id ?? "Department apparatus"}</div>
+                <div className="mt-1 font-body text-[13px] text-[#4a4842]">
                   {[unit.type, unit.year].filter(Boolean).join(" • ") || "Department asset"}
                 </div>
               </button>
@@ -827,8 +819,8 @@ export function IncidentForm({
         <FieldError message={fieldErrors.units_responding} />
       </div>
 
-      <div className="space-y-4 border-t pt-6">
-        <p className="text-sm font-medium text-foreground">Personnel on scene</p>
+      <div className="space-y-4 border-t border-[#d6cfbf] pt-6">
+        <p className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-[#4a4842]">Personnel on scene</p>
         <div className="grid gap-3 sm:grid-cols-2">
           {rosterList.map((member) => {
             const selected = form.personnel_on_scene.includes(member.id);
@@ -838,12 +830,12 @@ export function IncidentForm({
                 type="button"
                 onClick={() => toggleSelection("personnel_on_scene", member.id)}
                 className={cn(
-                  "min-h-[76px] rounded-lg border px-4 py-4 text-left transition-colors",
-                  selected ? "border-primary bg-primary/5" : "hover:bg-muted"
+                  "min-h-[72px] border border-[#d6cfbf] px-4 py-3.5 text-left transition-colors",
+                  selected ? "border-[var(--signal)] bg-[rgba(200,54,44,0.05)]" : "hover:bg-[#ede8de]"
                 )}
               >
-                <div className="font-medium">{member.name}</div>
-                <div className="mt-1 text-sm text-muted-foreground">
+                <div className="font-body font-medium text-[var(--ink)]">{member.name}</div>
+                <div className="mt-1 font-body text-[13px] text-[#4a4842]">
                   {[member.role, member.badge_number].filter(Boolean).join(" • ") || "Department responder"}
                 </div>
               </button>
@@ -857,7 +849,7 @@ export function IncidentForm({
   const step4 = currentStep === 4 && (
     <div className="space-y-6">
       <div className="space-y-4">
-        <p className="text-sm font-medium text-foreground">Casualties</p>
+        <p className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-[#4a4842]">Casualties</p>
         <div className="grid gap-4 sm:grid-cols-3">
           <div className="space-y-2">
             <Label htmlFor="civilian-casualties">Civilian casualties</Label>
@@ -866,7 +858,6 @@ export function IncidentForm({
               inputMode="numeric"
               value={form.civilian_casualties}
               onChange={(e) => updateForm("civilian_casualties", e.target.value)}
-              className="h-11"
             />
           </div>
           <div className="space-y-2">
@@ -876,7 +867,6 @@ export function IncidentForm({
               inputMode="numeric"
               value={form.firefighter_casualties}
               onChange={(e) => updateForm("firefighter_casualties", e.target.value)}
-              className="h-11"
             />
           </div>
           <div className="space-y-2">
@@ -886,20 +876,19 @@ export function IncidentForm({
               inputMode="numeric"
               value={form.exposures}
               onChange={(e) => updateForm("exposures", e.target.value)}
-              className="h-11"
             />
-            <p className="text-xs text-muted-foreground">Structures exposed, not involved</p>
+            <p className="font-body text-[12px] text-[#4a4842]">Structures exposed, not involved</p>
           </div>
         </div>
       </div>
 
-      <div className="space-y-4 border-t pt-6">
-        <p className="text-sm font-medium text-foreground">Property use</p>
+      <div className="space-y-4 border-t border-[#d6cfbf] pt-6">
+        <p className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-[#4a4842]">Property use</p>
         <select
           id="property-use"
           value={form.property_use}
           onChange={(e) => updateForm("property_use", e.target.value)}
-          className="flex h-11 w-full rounded-md border border-input bg-background px-3 text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="h-11 w-full border-0 border-b border-b-[var(--steel)] bg-transparent px-0 py-2 font-body text-[15px] text-[var(--ink)] focus:outline-none focus:border-b-[var(--signal)]"
         >
           <option value="">Select property use</option>
           {PROPERTY_USE_OPTIONS.map((opt) => (
@@ -908,8 +897,8 @@ export function IncidentForm({
         </select>
       </div>
 
-      <div className="space-y-4 border-t pt-6">
-        <p className="text-sm font-medium text-foreground">Actions taken</p>
+      <div className="space-y-4 border-t border-[#d6cfbf] pt-6">
+        <p className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-[#4a4842]">Actions taken</p>
         <div className="flex flex-wrap gap-3">
           {ACTION_TAKEN_OPTIONS.map((opt) => {
             const selected = form.actions_taken.includes(opt.value);
@@ -919,8 +908,8 @@ export function IncidentForm({
                 type="button"
                 onClick={() => toggleSelection("actions_taken", opt.value)}
                 className={cn(
-                  "min-h-[44px] rounded-full border px-4 py-2 text-sm transition-colors",
-                  selected ? "border-primary bg-primary/5 text-foreground" : "hover:bg-muted"
+                  "min-h-[40px] border border-[#d6cfbf] px-4 py-2 font-body text-[14px] text-[var(--ink)] transition-colors",
+                  selected ? "border-[var(--signal)] bg-[rgba(200,54,44,0.05)]" : "hover:bg-[#ede8de]"
                 )}
               >
                 {opt.label}
@@ -930,8 +919,8 @@ export function IncidentForm({
         </div>
       </div>
 
-      <div className="space-y-4 border-t pt-6">
-        <p className="text-sm font-medium text-foreground">Narrative</p>
+      <div className="space-y-4 border-t border-[#d6cfbf] pt-6">
+        <p className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-[#4a4842]">Narrative</p>
         <Textarea
           placeholder="Describe what happened: conditions on arrival, actions taken, outcomes, and any outstanding follow-up."
           value={form.narrative}
@@ -950,7 +939,7 @@ export function IncidentForm({
   const isLastStep  = currentStep === 4;
 
   const actionBar = (
-    <div className="flex items-center justify-between gap-3 border-t pt-6">
+    <div className="flex items-center justify-between gap-3 border-t border-[#d6cfbf] pt-6">
       <div className="flex items-center gap-3">
         {draftId ? (
           <Button
@@ -959,7 +948,7 @@ export function IncidentForm({
             size="sm"
             onClick={() => void saveDraft(true)}
             disabled={isSavingDraft}
-            className="text-muted-foreground"
+            className="text-[#4a4842]"
           >
             {savedFlash ? (
               <><Check className="h-3.5 w-3.5 text-green-600" /><span className="text-green-600">Saved</span></>
@@ -971,7 +960,7 @@ export function IncidentForm({
           </Button>
         ) : null}
         {draftSavedAt && !savedFlash ? (
-          <span className="hidden text-xs text-muted-foreground sm:inline">
+          <span className="hidden font-mono text-[10px] uppercase tracking-[0.1em] text-[#4a4842] sm:inline">
             Last saved {new Date(draftSavedAt).toLocaleTimeString()}
           </span>
         ) : null}
@@ -1012,7 +1001,7 @@ export function IncidentForm({
             >
               {submitLabel}
               {missingCount > 0 && (
-                <span className="ml-1.5 rounded-full bg-white/20 px-1.5 py-0.5 text-xs">
+                <span className="ml-1.5 bg-white/20 px-1.5 py-0.5 font-mono text-[10px]">
                   {missingCount}
                 </span>
               )}
@@ -1030,10 +1019,10 @@ export function IncidentForm({
   const errorBanner = (
     <>
       {loadError ? (
-        <div className="rounded-md bg-amber-50 px-4 py-3 text-sm text-amber-800 border border-amber-200">{loadError}</div>
+        <div className="border border-amber-300 bg-amber-50 px-4 py-3 font-body text-[14px] text-amber-800">{loadError}</div>
       ) : null}
       {saveError ? (
-        <div className="rounded-md bg-red-50 px-4 py-3 text-sm text-red-700 border border-red-200">{saveError}</div>
+        <div className="border border-[var(--signal)] bg-[rgba(200,54,44,0.05)] px-4 py-3 font-body text-[14px] text-[var(--signal)]">{saveError}</div>
       ) : null}
     </>
   );

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Siren } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
 import { buttonVariants } from "@/components/ui/button";
@@ -29,23 +29,16 @@ export function NewIncidentWorkspace() {
       </div>
 
       <div className="space-y-1">
-        <h1 className="text-3xl font-bold tracking-tight">Log incident</h1>
-        <p className="text-muted-foreground">
+        <h1 className="font-display text-[clamp(28px,4vw,40px)] uppercase tracking-[-0.005em] font-medium text-[var(--bone)]">Log incident</h1>
+        <p className="font-body text-[var(--bone-dim)]">
           Large controls for the rig, timed autosave every 30 seconds, and one-tap GPS capture.
         </p>
       </div>
 
-      <Card>
+      <Card className="bg-[var(--bone)] border-[#d6cfbf]">
         <CardHeader>
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <Siren className="h-5 w-5" />
-            </div>
-            <div>
-              <CardTitle>New incident report</CardTitle>
-              <CardDescription>NERIS-aligned. Saves offline, syncs when signal returns.</CardDescription>
-            </div>
-          </div>
+          <CardTitle className="text-[var(--ink)]">New incident report</CardTitle>
+          <CardDescription className="text-[#4a4842]">NERIS-aligned. Saves offline, syncs when signal returns.</CardDescription>
         </CardHeader>
         <CardContent>
           <IncidentForm

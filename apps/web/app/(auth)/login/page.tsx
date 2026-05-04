@@ -11,13 +11,6 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 
 const schema = z.object({
   email: z.string().email("Enter a valid email"),
@@ -50,20 +43,21 @@ function LoginForm() {
     }
 
     // Force a full navigation so middleware sees the fresh session cookie.
-    window.location.assign(res?.url ?? callbackUrl);
+    // Use callbackUrl directly — res.url is absolute using NEXTAUTH_URL which may differ from the actual dev port.
+    window.location.assign(callbackUrl);
   });
 
   return (
-    <form onSubmit={onSubmit} className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="email">Email</Label>
+    <form onSubmit={onSubmit} className="space-y-6">
+      <div className="space-y-1.5">
+        <Label htmlFor="email" className="text-[#4a4842]">Email</Label>
         <Input id="email" type="email" autoComplete="email" {...register("email")} />
         {errors.email && (
-          <p className="text-sm text-destructive">{errors.email.message}</p>
+          <p className="font-body text-[13px] text-[var(--signal)]">{errors.email.message}</p>
         )}
       </div>
-      <div className="space-y-2">
-        <Label htmlFor="password">Password</Label>
+      <div className="space-y-1.5">
+        <Label htmlFor="password" className="text-[#4a4842]">Password</Label>
         <Input
           id="password"
           type="password"
@@ -71,11 +65,11 @@ function LoginForm() {
           {...register("password")}
         />
         {errors.password && (
-          <p className="text-sm text-destructive">{errors.password.message}</p>
+          <p className="font-body text-[13px] text-[var(--signal)]">{errors.password.message}</p>
         )}
       </div>
-      {error && <p className="text-sm text-destructive">{error}</p>}
-      <Button type="submit" className="w-full" disabled={isSubmitting}>
+      {error && <p className="font-body text-[13px] text-[var(--signal)]">{error}</p>}
+      <Button type="submit" variant="block" className="w-full" disabled={isSubmitting}>
         {isSubmitting ? "Signing in…" : "Sign in"}
       </Button>
     </form>
@@ -84,22 +78,27 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-2xl">Sign in</CardTitle>
-        <CardDescription>VFD Platform — your department dashboard</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Suspense fallback={<div className="h-48 animate-pulse rounded-md bg-muted" />}>
-          <LoginForm />
-        </Suspense>
-        <p className="mt-4 text-center text-sm text-muted-foreground">
-          New department?{" "}
-          <Link href="/signup" className="font-medium text-primary hover:underline">
-            Create an account
-          </Link>
+    <div className="border border-[#d6cfbf] bg-white p-8">
+      <div className="mb-8">
+        <h1 className="font-display text-[28px] uppercase tracking-[0.02em] font-medium text-[var(--ink)]">
+          Sign In
+        </h1>
+        <p className="mt-1 font-body text-[15px] text-[var(--ink)]/60">
+          Halligan — your department dashboard
         </p>
-      </CardContent>
-    </Card>
+      </div>
+      <Suspense fallback={<div className="h-48 animate-pulse bg-[#e8e2d8]" />}>
+        <LoginForm />
+      </Suspense>
+      <p className="mt-6 font-body text-[14px] text-[var(--ink)]/60 text-center">
+        New department?{" "}
+        <Link
+          href="/signup"
+          className="text-[var(--signal)] hover:text-[var(--signal-deep)] transition-colors"
+        >
+          Create an account
+        </Link>
+      </p>
+    </div>
   );
 }

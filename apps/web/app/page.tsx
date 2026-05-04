@@ -124,8 +124,8 @@ export default function Home() {
   }
 
   const navLinks: [string, string][] = [
-    ["#features", "Modules"],
     ["#mission", "Mission"],
+    ["#features", "Modules"],
     ["#compare", "Compare"],
     ["#signup", "Request Access"],
   ];
@@ -151,8 +151,8 @@ export default function Home() {
             ))}
           </nav>
           <div className="nav-overlay-cta">
-            <a href="#signup" className="btn btn-primary" onClick={() => setNavOpen(false)}>
-              Request Access
+            <a href="/login" className="btn btn-primary" onClick={() => setNavOpen(false)}>
+              Login
             </a>
           </div>
         </div>
@@ -182,8 +182,8 @@ export default function Home() {
             ))}
           </nav>
           <div className="top-cta">
-            <a href="#signup" className="btn btn-primary">
-              Request Access
+            <a href="/login" className="btn btn-primary">
+              Login
             </a>
           </div>
           <button
@@ -211,7 +211,7 @@ export default function Home() {
               <br />
               management
               <br />
-              <span className="accent">that won&apos;t tax</span>
+              <span className="accent">that won&apos;t break</span>
               <br />
               the duty fund.
             </h1>
@@ -522,7 +522,7 @@ export default function Home() {
               <h2>The honest comparison.</h2>
               <p>
                 We&apos;re not going to tell you the giants are bad software. They&apos;re not. They&apos;re just
-                expensive software, sold by sales orgs that haven&apos;t run a call this decade. Here&apos;s what the
+                expensive software. Here&apos;s what the
                 line items actually look like for a 22-member volunteer house.
               </p>
             </div>

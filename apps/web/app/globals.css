@@ -33,7 +33,13 @@
     --signal-deep: #8c2018;
     --amber: #e8a13a;
     --rule: rgba(243, 238, 229, 0.14);
+    --rule-2: rgba(243, 238, 229, 0.18);
     --rule-strong: rgba(243, 238, 229, 0.28);
+    --green: #4ea864;
+    --blue: #4a8fb5;
+    --purple: #8c6fb0;
+    --ink-2: #14171b;
+    --steel-3: #2a2e36;
     --shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.55);
     --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
     --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);

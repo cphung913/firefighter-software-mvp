@@ -113,7 +113,7 @@ export function IncidentDetailWorkspace({ serverId }: Props) {
   if (incident === undefined) {
     return (
       <div className="flex min-h-[320px] items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <Loader2 className="h-6 w-6 animate-spin text-[var(--bone-dim)]" />
       </div>
     );
   }
@@ -124,8 +124,8 @@ export function IncidentDetailWorkspace({ serverId }: Props) {
         <Link href="/incidents" className={buttonVariants({ variant: "ghost", size: "sm" })}>
           <ArrowLeft className="h-4 w-4" />All incidents
         </Link>
-        <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-          <p className="font-medium text-foreground">Incident not found on this device.</p>
+        <div className="border border-[var(--rule)] p-8 text-center font-body text-[var(--bone-dim)]">
+          <p className="font-medium text-[var(--bone)]">Incident not found on this device.</p>
           <p className="mt-1">It may still be syncing. Pull to refresh or check your connection.</p>
         </div>
       </div>
@@ -140,10 +140,10 @@ export function IncidentDetailWorkspace({ serverId }: Props) {
 
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="space-y-1">
-          <h1 className="text-3xl font-bold tracking-tight">
+          <h1 className="font-display text-[clamp(28px,4vw,40px)] uppercase tracking-[-0.005em] font-medium text-[var(--bone)]">
             {incident.incident_number ?? "Incident"}
           </h1>
-          <p className="text-muted-foreground">
+          <p className="font-body text-[var(--bone-dim)]">
             {lookupLabel(NERIS_INCIDENT_TYPES, incident.incident_type)}
           </p>
         </div>
@@ -172,13 +172,13 @@ export function IncidentDetailWorkspace({ serverId }: Props) {
       </div>
 
       {error ? (
-        <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
+        <div className="border border-[var(--signal)] bg-[rgba(200,54,44,0.08)] px-4 py-3 font-body text-[14px] text-[var(--signal)]">{error}</div>
       ) : null}
 
-      <Card>
+      <Card className="bg-[var(--bone)] border-[#d6cfbf]">
         <CardHeader>
-          <CardTitle>Edit incident</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-[var(--ink)]">Edit incident</CardTitle>
+          <CardDescription className="text-[#4a4842]">
             Changes enqueue for sync. Offline edits are safe — they sync on reconnect.
           </CardDescription>
         </CardHeader>
