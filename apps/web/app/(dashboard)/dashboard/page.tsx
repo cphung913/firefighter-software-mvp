@@ -1,78 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useLiveQuery } from "dexie-react-hooks";
 import type { IncidentRecord } from "@/lib/db";
 import { db } from "@/lib/db";
 import { cn } from "@/lib/utils";
-
-// ─── LiveClock ────────────────────────────────────────────────────────────────
-
-function LiveClock() {
-  const [time, setTime] = useState("");
-  useEffect(() => {
-    const tick = () =>
-      setTime(
-        new Date().toLocaleTimeString("en-US", {
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: false,
-        })
-      );
-    tick();
-    const id = setInterval(tick, 1000);
-    return () => clearInterval(id);
-  }, []);
-  return (
-    <span
-      className="font-display font-semibold text-[32px] tracking-[0.06em] leading-none text-[var(--bone)]"
-      style={{ fontVariantNumeric: "tabular-nums" }}
-    >
-      {time || "--:--"}
-    </span>
-  );
-}
-
-// ─── StatusBoard ─────────────────────────────────────────────────────────────
-
-function StatBlock({
-  label,
-  children,
-  sub,
-}: {
-  label: string;
-  children: React.ReactNode;
-  sub?: string;
-}) {
-  return (
-    <div
-      className="flex flex-col gap-0.5 pl-[14px] shrink-0"
-      style={{ borderLeft: "1px solid var(--rule)" }}
-    >
-      <span
-        className="font-mono text-[10px] tracking-[0.16em] uppercase"
-        style={{ color: "#7a786f" }}
-      >
-        {label}
-      </span>
-      <div
-        className="font-display font-semibold text-[26px] tracking-[0.04em] leading-tight"
-        style={{ fontVariantNumeric: "tabular-nums" }}
-      >
-        {children}
-      </div>
-      {sub && (
-        <span
-          className="font-mono text-[10px] tracking-[0.06em]"
-          style={{ color: "var(--bone-dim)" }}
-        >
-          {sub}
-        </span>
-      )}
-    </div>
-  );
-}
 
 // ─── Card primitives ──────────────────────────────────────────────────────────
 
