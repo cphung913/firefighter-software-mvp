@@ -1,238 +1,223 @@
 ---
-name: VFD Platform
-description: Mission-critical operations software for volunteer fire departments.
+name: Halligan RMS
+description: Records management software for volunteer and combination fire departments.
 colors:
-  station-red: "#DB4038"
-  station-red-foreground: "#FAFAFA"
-  alarm-red: "#F53333"
-  canvas: "#FFFFFF"
-  ink: "#171717"
-  field-gray: "#F5F5F5"
-  smoke: "#737373"
-  rule-line: "#E5E5E5"
-  status-clear: "#22C55E"
-  status-response: "#FACC15"
-  status-oos: "#EF4444"
-  caution-bg: "#FEF9C3"
-  caution-fg: "#92400E"
+  box-red: "#c8362c"
+  box-red-deep: "#8c2018"
+  alert-stripe: "#e8a13a"
+  station-ink: "#0e1013"
+  apparatus-steel: "#1a1d22"
+  tool-finish: "#242830"
+  duty-log-cream: "#f3eee5"
+  parchment-dim: "#d9d3c6"
 typography:
   display:
-    fontFamily: "Inter, system-ui, sans-serif"
-    fontSize: "1.875rem"
-    fontWeight: 700
-    lineHeight: 1.2
-    letterSpacing: "-0.02em"
+    fontFamily: "Oswald, Impact, Arial Narrow, sans-serif"
+    fontSize: "clamp(3.5rem, 7vw, 6rem)"
+    fontWeight: 600
+    lineHeight: 0.95
+    letterSpacing: "-0.005em"
   headline:
-    fontFamily: "Inter, system-ui, sans-serif"
-    fontSize: "1.25rem"
-    fontWeight: 600
-    lineHeight: 1.3
-  title:
-    fontFamily: "Inter, system-ui, sans-serif"
-    fontSize: "1rem"
-    fontWeight: 600
-    lineHeight: 1.4
-  body:
-    fontFamily: "Inter, system-ui, sans-serif"
-    fontSize: "1rem"
-    fontWeight: 400
-    lineHeight: 1.5
-  label:
-    fontFamily: "Inter, system-ui, sans-serif"
-    fontSize: "0.875rem"
+    fontFamily: "Oswald, Impact, Arial Narrow, sans-serif"
+    fontSize: "clamp(2.25rem, 4.5vw, 4rem)"
     fontWeight: 500
-    lineHeight: 1
+    lineHeight: 1.0
+    letterSpacing: "-0.005em"
+  title:
+    fontFamily: "Oswald, Impact, Arial Narrow, sans-serif"
+    fontSize: "22px"
+    fontWeight: 500
+    lineHeight: 1.1
+    letterSpacing: "0.02em"
+  body:
+    fontFamily: "Source Sans 3, Source Sans Pro, sans-serif"
+    fontSize: "17px"
+    fontWeight: 400
+    lineHeight: 1.6
+    letterSpacing: "normal"
+  label:
+    fontFamily: "JetBrains Mono, Menlo, Consolas, monospace"
+    fontSize: "11px"
+    fontWeight: 400
+    lineHeight: 1.4
+    letterSpacing: "0.14em"
 rounded:
-  sm: "4px"
-  md: "6px"
-  lg: "8px"
+  none: "0"
+  sharp: "4px"
+  frame: "8px"
+  device: "14px"
 spacing:
-  sm: "8px"
-  md: "16px"
-  lg: "24px"
-  xl: "32px"
+  xs: "14px"
+  sm: "22px"
+  md: "40px"
+  lg: "80px"
+  xl: "120px"
 components:
   button-primary:
-    backgroundColor: "{colors.station-red}"
-    textColor: "{colors.station-red-foreground}"
-    rounded: "{rounded.md}"
-    padding: "11px 20px"
+    backgroundColor: "{colors.box-red}"
+    textColor: "{colors.duty-log-cream}"
+    rounded: "{rounded.none}"
+    padding: "12px 22px"
+    typography: "{typography.label}"
   button-primary-hover:
-    backgroundColor: "#C73930"
-    textColor: "{colors.station-red-foreground}"
-    rounded: "{rounded.md}"
-    padding: "11px 20px"
-  button-outline:
-    backgroundColor: "{colors.canvas}"
-    textColor: "{colors.ink}"
-    rounded: "{rounded.md}"
-    padding: "11px 20px"
+    backgroundColor: "{colors.box-red-deep}"
+    textColor: "{colors.duty-log-cream}"
+    rounded: "{rounded.none}"
+    padding: "12px 22px"
   button-ghost:
     backgroundColor: "transparent"
-    textColor: "{colors.ink}"
-    rounded: "{rounded.md}"
-    padding: "11px 20px"
-  input:
-    backgroundColor: "{colors.canvas}"
-    textColor: "{colors.ink}"
-    rounded: "{rounded.md}"
-    padding: "8px 12px"
-    height: "44px"
-  card:
-    backgroundColor: "{colors.canvas}"
-    textColor: "{colors.ink}"
-    rounded: "{rounded.lg}"
-    padding: "24px"
+    textColor: "{colors.duty-log-cream}"
+    rounded: "{rounded.none}"
+    padding: "12px 22px"
+  button-block:
+    backgroundColor: "{colors.station-ink}"
+    textColor: "{colors.duty-log-cream}"
+    rounded: "{rounded.none}"
+    padding: "14px 26px"
+  button-block-hover:
+    backgroundColor: "{colors.box-red}"
+    textColor: "{colors.duty-log-cream}"
+    rounded: "{rounded.none}"
+    padding: "14px 26px"
 ---
 
-# Design System: VFD Platform
+# Design System: Halligan RMS
 
 ## 1. Overview
 
-**Creative North Star: "The Station Standard"**
+**Creative North Star: "The Duty Board"**
 
-A visual system built to the same standard as a standing operating procedure. Nothing decorates. Nothing surprises. Every element is where it belongs because that is where it always is. The system earns trust by being identical at 8am and 2am, in good conditions and bad.
+Every apparatus bay has a duty board: a whiteboard or grease-pencil board with the shift roster, unit assignments, and open calls. Nothing decorates it. Nothing on it is there because someone thought it looked good. It exists because it has to exist, and its authority comes from being complete, legible, and true. Halligan's visual system works the same way. Dark ink surfaces read like the board's backing. Warm cream records read like the chalk. Signal red fires like the indicator light over the door.
 
-This is software used under pressure: post-incident logging, apparatus dispatch, shift handover at the end of an exhausting call. The visual language responds to that reality with high contrast, clear hierarchy, generous touch targets, and immediate feedback. It does not compete with the work; it supports it. A firefighter completes a task and returns to readiness without having thought about the interface.
+The palette is heavy where it needs to carry authority, warm where it needs to carry trust. Oswald condensed uppercase is stenciled apparatus lettering, not a typeface choice made in a branding meeting. JetBrains Mono is the CAD terminal, the log entry, the field label. Source Sans 3 is the body of the report, the words a chief actually reads. The system does not pursue visual novelty. It pursues legibility at speed, under pressure, on whatever device is at hand.
 
-The reference direction is government digital services (GOV.UK, USDS) and professional field operations tools (Procore, ServiceMax) — institutional polish, nothing wasted, nothing missing. Not startup minimalism, which mistakes sparse for serious. Not legacy fire software (Paladin), which mistakes cluttered for capable.
+This system explicitly rejects the generic SaaS startup aesthetic: gradient-heavy hero sections, sans-serif minimalism with abstract blob illustrations, "AI-powered" badge language, and Intercom-style product screenshots. It rejects anything that reads as a pitch deck or a VC-backed tech company. A chief who picks up a department iPhone between calls should feel no friction between this interface and the rest of the station's visual world.
 
 **Key Characteristics:**
-- Near-achromatic neutral palette; Station Red reserved for action and status only
-- Inter across all weights — function over typographic expression
-- Flat surfaces at rest; structural shadow (`shadow-sm`) signals containment only
-- 44px touch targets as a hard floor on every interactive element
-- Transitions are direct and brief (100-150ms ease-out); no choreography, no bounce
+- Dark-primary: station ink surfaces dominate, duty log cream surfaces are records and forms
+- Condensed uppercase display type throughout all headings, navigation, and buttons
+- Monospace for all machine-readable data: incident numbers, timestamps, field labels, meta
+- Signal red is earned: reserved for active status, true calls to action, and the one brand accent
+- Flat and tonal: depth through surface contrast, not shadows
+- Sharp geometry: zero or minimal radius throughout; no soft corners
 
 ## 2. Colors: The Station Palette
 
-A disciplined palette built for operational clarity. Red commands attention; neutrals provide the field it operates on. Status colors are a closed set — they communicate only apparatus and system state, never decoration.
+Two surface worlds - dark duty and light record - held together by a single alarmed red.
 
 ### Primary
-- **Station Red** (`#DB4038`): The action color. Primary buttons, links, focus rings, the application brand mark. Used on ≤10% of any given screen. Its presence signals "this is the thing to do."
+- **Box Red** (`#c8362c`): Engine red. The one active color in the system. Used for the primary CTA button, active nav states, incident status indicators, module numbers on dark surfaces, the brand mark accent, and form focus rings. Its rarity is its authority - when it appears, it signals action.
+- **Box Red Deep** (`#8c2018`): Hover state for Box Red buttons only. Not used independently.
+
+### Secondary
+- **Alert Stripe** (`#e8a13a`): High-visibility amber. Used exclusively as the secondary module accent (EMS, apparatus alternates) and the amber variant of incident tags. Marks the secondary operational track. Not used in navigation, headings, or layout chrome.
 
 ### Neutral
-- **Canvas** (`#FFFFFF`): Page background, card surfaces, input backgrounds.
-- **Ink** (`#171717`): All primary text. Near-black, not pure black — retains optical softness.
-- **Field Gray** (`#F5F5F5`): Page-level backgrounds, secondary surface fill, loading skeleton base.
-- **Smoke** (`#737373`): Secondary and descriptive text — unit type labels, helper copy, timestamps.
-- **Rule Line** (`#E5E5E5`): All borders, dividers, input strokes, card outlines.
-
-### Semantic Status
-- **Status Clear** (`#22C55E`): Apparatus available, sync success, positive confirmation.
-- **Status Response** (`#FACC15`): Apparatus responding, sync in progress, caution state.
-- **Status OOS** (`#EF4444`): Apparatus out of service, sync error.
-- **Alarm Red** (`#F53333`): Destructive actions, validation errors, critical system alerts.
-- **Caution Background / Foreground** (`#FEF9C3` / `#92400E`): Offline-mode alert banners, non-critical warnings.
+- **Station Ink** (`#0e1013`): The primary dark surface. Hero background, features section, signup section, footer. Near-black with a barely perceptible cool undertone.
+- **Apparatus Steel** (`#1a1d22`): The secondary dark surface. UI sidebar, titlebar, pullquote backgrounds. Lighter than Station Ink by enough to read as a distinct layer without a shadow.
+- **Tool Finish** (`#242830`): Tertiary dark surface. Crew card backgrounds in the roster mockup. The darkest "lifted" surface within the dark world.
+- **Duty Log Cream** (`#f3eee5`): The primary light surface. Mission section background, form card background, UI main panel, body text on dark. Warm parchment, not clinical white.
+- **Parchment Dim** (`#d9d3c6`): Dimmed body text and secondary labels on dark surfaces. Never used as a background.
 
 ### Named Rules
-**The Station Red Rule.** Red is reserved for action (primary buttons, links, focus rings) and system state (destructive, error). It is never used as a background fill on extended surfaces, never used decoratively, and never combined with another saturated hue on the same screen.
+**The Alarm Rule.** Box Red appears on 15% or less of any given screen. Its scarcity is the mechanism. When it appears on a button, a status pip, or an incident number, it reads as a live signal because it never appeared anywhere else. The moment it starts decorating headers, section backgrounds, or illustration fills, it stops alarming.
 
-**The Status Pair Rule.** Status colors never stand alone. Every status indicator pairs a colored dot with a text label. Color-blind users read the label; sighted users read the color. Both paths work.
+**The Two-World Rule.** Dark surfaces (Station Ink, Apparatus Steel, Tool Finish) and light surfaces (Duty Log Cream) do not mix within a single section. Sections alternate between worlds. Forms and records are always light. Operational content defaults to dark.
 
-## 3. Typography
+## 3. Typography: Stencil, Serif, Signal
 
-**Display / Body Font:** Inter (with `system-ui, sans-serif` fallback)
+**Display Font:** Oswald (condensed grotesque; fallback: Impact, Arial Narrow, sans-serif)
+**Body Font:** Source Sans 3 (warm humanist sans; fallback: Source Sans Pro, sans-serif)
+**Label/Mono Font:** JetBrains Mono (programming mono; fallback: Menlo, Consolas, monospace)
 
-Loaded via Google Fonts with `font-display: swap`. A single sans-serif family throughout — no display/body split. Inter's engineering heritage makes it feel technical-precise without feeling cold. Weight contrast carries the full typographic hierarchy.
-
-**Character:** Workmanlike. Zero expressiveness at body scale, deliberate authority at display scale. The typeface recedes; the content leads.
+**Character:** Oswald at uppercase condensed reads as stenciled apparatus markings - immediate, industrial, zero ambiguity about hierarchy. Source Sans 3 softens the reading experience for longer text without losing the plainspoken register. JetBrains Mono distinguishes machine-readable data from human-readable copy at a glance, the same way a CAD terminal differs from a briefing report.
 
 ### Hierarchy
-- **Display** (700, 1.875rem / 30px, line-height 1.2, tracking -0.02em): Page titles only. One per screen.
-- **Headline** (600, 1.25rem / 20px, line-height 1.3): Section headings, modal titles, card group labels.
-- **Title** (600, 1rem / 16px, line-height 1.4): Card titles, list item primary text, form section heads.
-- **Body** (400, 1rem / 16px, line-height 1.5, max 65–75ch): All prose content, form descriptions, narrative fields.
-- **Label** (500, 0.875rem / 14px, line-height 1): Form labels, button text, navigation items, status text.
+- **Display** (600, clamp(56px-96px), 0.95 lh, -0.005em ls, uppercase): Hero h1 only. Maximum one per section. Never sentence-case.
+- **Headline** (500, clamp(36px-64px), 1.0 lh, -0.005em ls, uppercase): Section h2 headings. Drives the reading rhythm between sections.
+- **Title** (500, 22px, 1.1 lh, 0.02em ls, uppercase): h3 feature headings, form headings, callout subheadings.
+- **Body** (400, 17-19px, 1.6 lh): Mission text, feature descriptions, form copy. Maximum 65ch line length.
+- **Label** (400, 10.5-13px, 1.4 lh, 0.14-0.20em ls, uppercase): All mono applications: incident numbers, timestamps, addresses, form field labels, section tags, navigation links, button text, meta lines, footer data. The visual register of operational data.
 
 ### Named Rules
-**The Plain English Rule.** Every visible string must be the shortest phrase the user would naturally say aloud. "Log Incident" not "Create NERIS Record". "Out of Service" not "OOS". "Sign In" not "Authenticate". No jargon survives without a plain-English companion.
+**The Stencil Rule.** Oswald is always uppercase. Never sentence-case on headings, buttons, or navigation. Oswald in sentence case loses its condensed authority and reads as a cheap weight substitute. The only exception: quoted text inside blockquotes or pull quotes.
+
+**The Terminal Rule.** Any piece of data that could appear on a CAD screen or a dispatch log - incident numbers, timestamps, radio designations, addresses, roster units, compliance codes (NERIS, NFPA, NEMSIS) - uses JetBrains Mono. Mixed-font lines (Oswald label + mono data) are a first-class pattern, not an edge case.
 
 ## 4. Elevation
 
-This system is flat by default. Depth is not decorative — it signals containment.
+This system is flat by design. Depth is conveyed through tonal contrast between surface layers (Station Ink to Apparatus Steel to Tool Finish; or Duty Log Cream to its border treatments), never through shadows on UI elements.
 
-Cards carry a single structural shadow (`box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05)`) to lift them from the page surface. No other shadow level is in use. There is no `shadow-md`, no `shadow-lg`, no ambient glow. Interactive elements (buttons, inputs) signal focus through ring treatment, not shadow shifts.
+One structural exception: the hero mockup stage carries a single deep shadow (`0 24px 60px -20px rgba(0, 0, 0, 0.55)`) that physically floats the laptop and tablet frames above the page. This is a scene-setting device - the mockups are treated as physical objects in a photograph, not as UI surfaces. This shadow does not migrate to cards, callouts, form elements, or any surface inside the actual interface.
 
 ### Shadow Vocabulary
-- **Contained** (`0 1px 2px 0 rgba(0,0,0,0.05)`): Cards and panels only. Separates a grouped content block from the page.
+- **Structural Float** (`0 24px 60px -20px rgba(0, 0, 0, 0.55)`): Hero mockup device frames only. Nowhere else.
 
 ### Named Rules
-**The Flat-By-Default Rule.** Surfaces are flat at rest. The single shadow step exists to mark containment, not to create visual drama. If a new component requires more than `shadow-sm` to feel grounded, the problem is color or spacing, not shadow depth.
+**The Flat-By-Default Rule.** UI surfaces have no shadow at rest, hover, or focus. If depth is needed between two surfaces, step between Station Ink, Apparatus Steel, and Tool Finish. If a border is needed, use the rule tokens (`rgba(243, 238, 229, 0.14)` on dark, `#d6cfbf` on light). Shadows on interactive elements are prohibited.
 
 ## 5. Components
 
 ### Buttons
-Tactile and direct. Substantial enough to hit without looking; responsive enough to confirm without overreacting. Transitions at 150ms ease-out — felt but not watched.
+Buttons are sharp-cornered (0 radius) and uppercase Oswald throughout. No soft edges, no rounded pills.
 
-- **Shape:** Gently rounded (6px / `rounded-md`)
-- **Primary:** Station Red background (#DB4038), off-white text (#FAFAFA), 44px height, 20px horizontal padding. Hover darkens 10% (#C73930). Active darkens 20% (#B83329).
-- **Focus:** 2px white inner ring + 2px Station Red outer ring (`box-shadow: 0 0 0 2px #FFF, 0 0 0 4px #DB4038`).
-- **Outline:** Canvas background, Ink text, Rule Line border (1px). Hover fills Field Gray.
-- **Ghost:** Transparent at rest. Hover fills Field Gray. Used for secondary in-context actions.
-- **Disabled:** 50% opacity, pointer-events none. No separate color.
+- **Primary** (Box Red `#c8362c`, bone text, 0 radius, 12px 22px padding): The single action a section wants taken. "Request Early Access", "Submit Request". Hover: Box Red Deep `#8c2018`. One primary button per visual region maximum.
+- **Ghost** (transparent, bone text, `rgba(243, 238, 229, 0.35)` border, 12px 22px padding): Secondary action alongside a primary. "Talk to the Team", "Sign In". Hover: `rgba(243, 238, 229, 0.08)` background fill.
+- **Block** (Station Ink background, bone text, 0 radius, 14px 26px padding): Primary CTA on light (cream) surfaces, such as the form submit. Hover: shifts to Box Red to acknowledge the submission action.
+- All buttons: Oswald 600, 13px, 0.14em tracking, uppercase, 0.15s ease transition on background only.
 
-### Cards / Containers
-- **Corner Style:** 8px radius (`rounded-lg`)
-- **Background:** Canvas (#FFFFFF)
-- **Border:** 1px Rule Line (#E5E5E5)
-- **Shadow:** Contained (`0 1px 2px 0 rgba(0,0,0,0.05)`)
-- **Header Padding:** 24px
-- **Content Padding:** 0 24px 24px
+### Inputs and Fields
+Underline-only. No box, no background fill, no radius. The form lives on a cream surface; adding box borders would create a nested surface inside a surface.
 
-Never nest cards. Nested containment is hierarchy by accident; use spacing and dividers instead.
+- **Default**: 1.5px solid `#1a1d22` bottom border only. Source Sans 3 15px. Transparent background.
+- **Focus**: Bottom border shifts to Box Red `#c8362c`. No outline, no glow, no shadow.
+- **Label**: JetBrains Mono 10.5px, 0.16em tracking, uppercase, `#4a4842`.
+- **Textarea**: `resize: vertical` only. Minimum 80px height.
+- **Select**: Same underline treatment as input.
 
-### Apparatus Status Card (Signature Component)
-The most-used interactive element in the product. A tappable card that cycles apparatus status on each tap.
+### Navigation
+- Oswald 500, 13px, 0.14em tracking, uppercase, `#f3eee5` text.
+- Hover state: `border-bottom: 2px solid #c8362c`. No background fill, no underline fade, no color change to text.
+- Only appears at desktop widths; hidden below 980px breakpoint (mobile gets no nav, just the CTA buttons).
 
-- **Layout:** Horizontal flex, 16px gap, 16px padding, 72px minimum height
-- **Status Indicator:** 16px filled circle, color-coded (Clear / Response / OOS)
-- **Unit Name:** Title weight (500), truncated with ellipsis on overflow
-- **Unit Type:** Label weight (400), Smoke color (#737373), truncated
-- **Status Label:** 14px / 600 weight, status-matched color; right-aligned, no-shrink
-- **Interaction:** `cursor-pointer`, hover 85% opacity, active 70% opacity; 150ms ease-out
+### Section Tag
+A recurring structural element: JetBrains Mono 12px, 0.20em tracking, uppercase, Box Red text, preceded by a 28px x 2px Box Red rule. Used to number and label content sections ("Mission · 01", "Receipt · 02", "Roll Call · 03"). Always positioned above the section h2.
 
-### Inputs / Fields
-- **Style:** Canvas background, Rule Line border (1px), 6px radius, 44px height
-- **Typography:** 16px body weight (prevents iOS auto-zoom on focus)
-- **Focus:** Border shifts to Station Red; 2px Station Red ring at 20% opacity (`box-shadow: 0 0 0 2px rgba(219,64,56,0.2)`)
-- **Error:** Alarm Red border (#F53333) + error message in Alarm Red below the field
-- **Disabled:** 50% opacity, not-allowed cursor
-- **Labels:** Always visible above the field, 14px / 500 weight, 8px gap
+### Feature Grid Cell
+A full-bordered grid cell, not a card. The grid draws its borders from the grid container's shared borders (`border-top`, `border-left` on the grid; `border-right`, `border-bottom` on each cell). Dark ink background. Mono numbered module code above the title. Hover: `#14171c` background, no transform, no shadow.
 
-### Navigation Header
-- **Style:** Sticky, 64px height, Canvas background, Rule Line bottom border (1px), z-index 20
-- **Brand mark:** Station Red, 14px / 500 weight (mobile only; desktop shows sidebar nav)
-- **Padding:** 16px horizontal on mobile, 24px on desktop
+- Amber variant: the module number shifts from Box Red to Alert Stripe. Applied to alternating cells (Roster, Apparatus, EMS modules).
 
-### Caution / Offline Banner
-Used for the sync-offline alert that must always be visible when offline.
-- **Background:** Caution Background (#FEF9C3)
-- **Text:** Caution Foreground (#92400E)
-- **Border:** 1px yellow-300 (#FDE047)
-- **Shape:** 6px radius, 16px horizontal padding, 12px vertical padding
-- **Typography:** 14px body text, no icons required (text must be self-sufficient)
+### Incident Tag
+A compact classification chip for incident type: 9px Oswald, 2px 6px padding, 2px radius. Four variants:
+
+- **Fire**: Box Red tinted background (`rgba(200, 54, 44, 0.14)`), Box Red text
+- **EMS**: Alert Stripe tinted background (`rgba(232, 161, 58, 0.18)`), `#946615` text
+- **Haz**: Apparatus Steel background, Alert Stripe text
+- **Svc**: `#e2dccc` background, `#4a4842` text
+
+### Brand Mark
+A pentagon (fire-shield clip path) with "H" in Oswald 700, 24px, on a Duty Log Cream background with Station Ink text. Not a circle, not a square - the shield shape is the brand's single piece of visual identity that departs from pure utility.
 
 ## 6. Do's and Don'ts
 
 ### Do:
-- **Do** reserve Station Red for action and status. Its rarity is what makes it readable.
-- **Do** pair every status color with a text label. Never communicate state through color alone.
-- **Do** maintain 44px as the absolute minimum for every interactive element — buttons, inputs, icon buttons, tappable cards.
-- **Do** use Inter weight contrast (400 body / 500 label / 600 title / 700 display) to build hierarchy before reaching for size changes.
-- **Do** keep transitions at 100-150ms with `cubic-bezier(0, 0, 0.2, 1)` (ease-out-quart equivalent). Responsive, not theatrical.
-- **Do** write every label in plain English at the shortest natural phrasing.
-- **Do** use `prefers-reduced-motion` to disable transitions for users who have opted out.
-- **Do** target WCAG AA contrast minimums: 4.5:1 for body text, 3:1 for large text and UI components.
+- **Do** use Box Red only for live action: primary CTAs, active states, incident status pips, module identifiers. Its scarcity is its meaning.
+- **Do** uppercase all Oswald usage. Headings, buttons, navigation, section tags - always uppercase.
+- **Do** use JetBrains Mono for any data that would appear in a dispatch log or CAD screen: incident numbers, timestamps, compliance codes, field labels, roster unit designations.
+- **Do** alternate sections between dark (Station Ink) and light (Duty Log Cream) surfaces. Keep entire sections in one world.
+- **Do** use tonal steps (Station Ink to Apparatus Steel to Tool Finish) to express depth within dark surfaces.
+- **Do** use full borders on the feature grid container so cells share borders rather than each having four independent sides.
+- **Do** keep button radius at zero. The sharp edge is the point.
 
 ### Don't:
-- **Don't** use SaaS-bold aesthetics: oversized hero metrics, gradient accents, celebration animations, "delight-first" motion.
-- **Don't** use consumer app patterns: bottom tab nav carousels, onboarding mascots, pull-to-reveal easter eggs.
-- **Don't** use gradient text (`background-clip: text`). Single solid color only.
-- **Don't** use colored `border-left` stripes on cards, list items, or callouts as accent decoration. Rewrite with a background tint, a full border, or a leading icon.
-- **Don't** use Paladin-style visual density: competing text sizes, colored table rows, icon overload.
-- **Don't** use generic admin dashboard patterns: navy sidebars, hero-metric blocks (big number + small label + gradient accent), identical icon-heading-text card grids.
-- **Don't** apply shadow-md or shadow-lg. One shadow step exists in this system; use it only on cards.
-- **Don't** use Station Red as a background fill on extended surfaces. It is an action signal, not a brand wash.
-- **Don't** introduce a second accent color. The palette is intentionally minimal; a second accent competes with status colors and undermines the Station Red Rule.
-- **Don't** animate layout properties (width, height, padding, margin). Animate opacity and transform only.
+- **Don't** use gradient text (`background-clip: text`). Use a single solid color. Box Red is already alarming enough.
+- **Don't** use side-stripe borders wider than 1px as a decorative accent on cards, callouts, or list items. Rewrite with full borders or background tints.
+- **Don't** use generic SaaS startup aesthetics: gradient-heavy heroes, blob illustrations, "AI-powered" badge language, rounded pill buttons.
+- **Don't** apply glassmorphism or blurred backdrop surfaces anywhere in the system.
+- **Don't** add shadows to interactive elements (buttons, cards, inputs) at any state. The flat-by-default rule is absolute.
+- **Don't** use Alert Stripe amber in navigation, headings, or layout chrome. It marks the EMS and secondary operational track only.
+- **Don't** mix dark and light surfaces within a single content section.
+- **Don't** use Oswald in sentence case. If the text can't be uppercase, it uses Source Sans 3 or JetBrains Mono.
+- **Don't** add decorative elements that earn nothing: icons for decoration, divider illustrations, abstract patterns. The diagonal rule on `.callout-card::before` is a one-time hazard-stripe device for the comparison section; it does not generalize.
+- **Don't** use `#000000` or `#ffffff`. Station Ink (`#0e1013`) and Duty Log Cream (`#f3eee5`) are the terminals.
