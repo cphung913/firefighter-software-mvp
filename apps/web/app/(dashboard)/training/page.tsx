@@ -1,4 +1,4 @@
-export default function trainingPage() {
+export default function TrainingPage() {
   return (
     <div>
       <div style={{ marginBottom: 24 }}>

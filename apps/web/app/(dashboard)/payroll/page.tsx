@@ -1,4 +1,4 @@
-export default function payrollPage() {
+export default function PayrollPage() {
   return (
     <div>
       <div style={{ marginBottom: 24 }}>

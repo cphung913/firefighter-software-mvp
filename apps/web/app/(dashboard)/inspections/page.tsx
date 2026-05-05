@@ -1,4 +1,4 @@
-export default function inspectionsPage() {
+export default function InspectionsPage() {
   return (
     <div>
       <div style={{ marginBottom: 24 }}>

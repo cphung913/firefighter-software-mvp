@@ -241,6 +241,26 @@ export class VfdLocalDb extends Dexie {
       pending_audio: "++id, local_clip_id, session_id, created_at",
       sync_state: "key",
     });
+    // v8: add name index on equipment for orderBy("name") queries
+    this.version(8).stores({
+      incidents:
+        "local_id, server_id, _sync_status, updated_at, incident_number, incident_type",
+      incident_drafts: "id, updated_at, incident_number",
+      department_users: "id, name, role, cached_at",
+      apparatus:
+        "local_id, server_id, _sync_status, updated_at, unit_id, service_status",
+      equipment:
+        "local_id, server_id, _sync_status, updated_at, equipment_type, status, next_inspection_due, name",
+      equipment_inspections:
+        "local_id, server_id, _sync_status, updated_at, equipment_local_id, inspection_date",
+      equipment_maintenance:
+        "local_id, server_id, _sync_status, updated_at, equipment_local_id, maintenance_date",
+      voice_sessions: "id, session_code, cached_at",
+      voice_logs: "local_id, server_id, _sync_status, updated_at, session_id",
+      pending_mutations: "++id, table, local_id, client_timestamp",
+      pending_audio: "++id, local_clip_id, session_id, created_at",
+      sync_state: "key",
+    });
   }
 }
 

@@ -1,4 +1,4 @@
-export default function reportsPage() {
+export default function ReportsPage() {
   return (
     <div>
       <div style={{ marginBottom: 24 }}>

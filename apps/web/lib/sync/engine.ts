@@ -166,10 +166,14 @@ export async function pullSince(): Promise<void> {
   useSyncStore.getState().setLastSyncAt(res.server_time);
 }
 
+// Must include every table in SyncTable (lib/db/schema.ts) so push/pull transactions cover all sync-able tables.
 function allTableHandles() {
   return [
     db.incidents,
     db.apparatus,
+    db.equipment,
+    db.equipment_inspections,
+    db.equipment_maintenance,
     db.voice_logs,
     db.sync_state,
   ];
