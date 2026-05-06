@@ -1,4 +1,4 @@
-import { getSession } from "next-auth/react";
+import { getSession, signOut } from "next-auth/react";
 
 const API_PROXY_PREFIX = "/api/proxy";
 
@@ -43,6 +43,9 @@ export async function apiFetch<T>(
       body = await res.json();
     } catch {
       // ignore
+    }
+    if (res.status === 401) {
+      await signOut({ redirect: true, callbackUrl: "/login" });
     }
     throw new ApiError(res.status, body);
   }

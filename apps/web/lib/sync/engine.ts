@@ -175,6 +175,11 @@ function allTableHandles() {
     db.equipment_inspections,
     db.equipment_maintenance,
     db.voice_logs,
+    db.training_drills,
+    db.training_attendees,
+    db.certifications,
+    db.leave_requests,
+    db.shift_trades,
     db.sync_state,
   ];
 }

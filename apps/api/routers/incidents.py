@@ -1,14 +1,17 @@
 import uuid
+from datetime import date, timedelta
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.db import get_db
 from core.deps import get_current_department, get_current_user, require_admin
 from models.department import Department
 from models.incident import Incident
+from models.scheduling import ShiftAssignment, ShiftGroup
+from models.training import Certification
 from models.user import User
 from schemas.assets import ApparatusOut
 from schemas.incident import (
@@ -20,6 +23,7 @@ from schemas.incident import (
     IncidentUpdateRequest,
     TaxonomyOption,
 )
+from schemas.scheduling import ShiftAssignmentOut, ShiftGroupOut
 from services.assets_service import get_apparatus_list
 from services.incident_service import (
     ACTION_TAKEN_CODES,
@@ -47,7 +51,7 @@ async def get_taxonomy(
 
 @router.get("/bootstrap", response_model=IncidentBootstrapResponse)
 async def bootstrap_incident_form(
-    _user: User = Depends(get_current_user),
+    user: User = Depends(get_current_user),
     department: Department = Depends(get_current_department),
     db: AsyncSession = Depends(get_db),
 ) -> IncidentBootstrapResponse:
@@ -57,6 +61,45 @@ async def bootstrap_incident_form(
         .where(User.department_id == department.id)
         .order_by(User.name)
     )
+
+    groups_result = await db.execute(
+        select(ShiftGroup).where(ShiftGroup.department_id == department.id)
+    )
+    shift_groups = [
+        ShiftGroupOut.model_validate(g, from_attributes=True)
+        for g in groups_result.scalars().all()
+    ]
+
+    today = date.today()
+    all_assignments_result = await db.execute(
+        select(ShiftAssignment).where(
+            ShiftAssignment.department_id == department.id,
+            ShiftAssignment.start_date <= today,
+            or_(
+                ShiftAssignment.end_date.is_(None),
+                ShiftAssignment.end_date >= today,
+            ),
+        )
+    )
+    all_active = all_assignments_result.scalars().all()
+    shift_assignments = [
+        ShiftAssignmentOut.model_validate(a, from_attributes=True)
+        for a in all_active
+    ]
+    my_assignment = next(
+        (a for a in shift_assignments if str(a.user_id) == str(user.id)),
+        None,
+    )
+
+    cutoff_90 = today + timedelta(days=90)
+    expiring_certs_count = await db.scalar(
+        select(func.count()).where(
+            Certification.user_id == user.id,
+            Certification.department_id == department.id,
+            Certification.expiry_date >= today,
+            Certification.expiry_date <= cutoff_90,
+        )
+    ) or 0
 
     return IncidentBootstrapResponse(
         apparatus=[
@@ -72,6 +115,10 @@ async def bootstrap_incident_form(
             )
             for member in roster.all()
         ],
+        shift_groups=shift_groups,
+        shift_assignments=shift_assignments,
+        my_assignment=my_assignment,
+        expiring_certs_count=expiring_certs_count,
     )
 
 

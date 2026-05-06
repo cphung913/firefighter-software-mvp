@@ -1,4 +1,4 @@
-from sqlalchemy import String
+from sqlalchemy import Integer, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from models.base import Base, TimestampMixin, UUIDPKMixin
@@ -15,4 +15,8 @@ class Department(Base, UUIDPKMixin, TimestampMixin):
     )
     incident_seq: Mapped[int] = mapped_column(
         nullable=False, default=0, server_default="0"
+    )
+    minimum_staffing: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    overtime_threshold_hours: Mapped[float | None] = mapped_column(
+        Numeric(6, 2), nullable=True
     )

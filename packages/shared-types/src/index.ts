@@ -292,6 +292,11 @@ export const SyncTable = z.enum([
   "equipment",
   "equipment_inspections",
   "equipment_maintenance",
+  "training_drills",
+  "training_attendees",
+  "certifications",
+  "leave_requests",
+  "shift_trades",
 ]);
 export type SyncTable = z.infer<typeof SyncTable>;
 
@@ -415,3 +420,220 @@ export const EquipmentMaintenanceSchema = z.object({
   out_of_service_end: z.string().nullable().optional(),
 });
 export type EquipmentMaintenance = z.infer<typeof EquipmentMaintenanceSchema>;
+
+// ===== Scheduling =====
+
+export const ShiftPatternSchema = z.object({
+  id: z.string().uuid(),
+  department_id: z.string().uuid(),
+  name: z.string(),
+  pattern_type: z.string(),
+  cycle_length_days: z.number(),
+  on_days: z.number(),
+  off_days: z.number(),
+  kelly_day_interval: z.number().nullable(),
+  start_date: z.string(),
+  is_active: z.boolean(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+export type ShiftPattern = z.infer<typeof ShiftPatternSchema>;
+
+export const ShiftGroupSchema = z.object({
+  id: z.string().uuid(),
+  department_id: z.string().uuid(),
+  pattern_id: z.string().uuid(),
+  name: z.string(),
+  color: z.string(),
+  cycle_offset_days: z.number(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+export type ShiftGroup = z.infer<typeof ShiftGroupSchema>;
+
+export const ShiftAssignmentSchema = z.object({
+  id: z.string().uuid(),
+  department_id: z.string().uuid(),
+  user_id: z.string().uuid(),
+  group_id: z.string().uuid(),
+  start_date: z.string(),
+  end_date: z.string().nullable(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+export type ShiftAssignment = z.infer<typeof ShiftAssignmentSchema>;
+
+export const LeaveRequestSchema = z.object({
+  id: z.string().uuid(),
+  department_id: z.string().uuid(),
+  user_id: z.string().uuid(),
+  leave_type: z.string(),
+  start_date: z.string(),
+  end_date: z.string(),
+  notes: z.string().nullable(),
+  status: z.string(),
+  reviewed_by: z.string().uuid().nullable(),
+  reviewed_at: z.string().nullable(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+export type LeaveRequest = z.infer<typeof LeaveRequestSchema>;
+
+export const LeaveRequestCreateSchema = z.object({
+  leave_type: z.string(),
+  start_date: z.string(),
+  end_date: z.string(),
+  notes: z.string().nullable().optional(),
+});
+export type LeaveRequestCreate = z.infer<typeof LeaveRequestCreateSchema>;
+
+export const ShiftTradeSchema = z.object({
+  id: z.string().uuid(),
+  department_id: z.string().uuid(),
+  requester_id: z.string().uuid(),
+  recipient_id: z.string().uuid(),
+  trade_date: z.string(),
+  return_date: z.string().nullable(),
+  notes: z.string().nullable(),
+  status: z.string(),
+  approved_by: z.string().uuid().nullable(),
+  approved_at: z.string().nullable(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+export type ShiftTrade = z.infer<typeof ShiftTradeSchema>;
+
+export const ShiftTradeCreateSchema = z.object({
+  recipient_id: z.string().uuid(),
+  trade_date: z.string(),
+  return_date: z.string().nullable().optional(),
+  notes: z.string().nullable().optional(),
+});
+export type ShiftTradeCreate = z.infer<typeof ShiftTradeCreateSchema>;
+
+export const CalendarUserSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  badge_number: z.string().nullable(),
+  group_name: z.string(),
+  group_color: z.string(),
+});
+export type CalendarUser = z.infer<typeof CalendarUserSchema>;
+
+export const CalendarDaySchema = z.object({
+  date: z.string(),
+  on_duty: z.array(CalendarUserSchema),
+  leave_count: z.number(),
+  trade_count: z.number(),
+  staffing_ok: z.boolean(),
+});
+export type CalendarDay = z.infer<typeof CalendarDaySchema>;
+
+export const SchedulingBootstrapSchema = z.object({
+  patterns: z.array(ShiftPatternSchema),
+  groups: z.array(ShiftGroupSchema),
+  my_assignment: ShiftAssignmentSchema.nullable(),
+});
+export type SchedulingBootstrap = z.infer<typeof SchedulingBootstrapSchema>;
+
+// ===== Training =====
+
+export const TrainingAttendeeSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  badge_number: z.string().nullable(),
+  role: z.string(),
+});
+export type TrainingAttendee = z.infer<typeof TrainingAttendeeSchema>;
+
+export const TrainingDrillSchema = z.object({
+  id: z.string().uuid(),
+  department_id: z.string().uuid(),
+  drill_type: z.string(),
+  title: z.string(),
+  description: z.string().nullable(),
+  drill_date: z.string(),
+  hours: z.number(),
+  instructor: z.string().nullable(),
+  location: z.string().nullable(),
+  iso_category: z.string().nullable(),
+  created_by: z.string().uuid().nullable(),
+  attendee_count: z.number(),
+  attendees: z.array(TrainingAttendeeSchema).optional(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+export type TrainingDrill = z.infer<typeof TrainingDrillSchema>;
+
+export const TrainingDrillCreateSchema = z.object({
+  drill_type: z.string(),
+  title: z.string(),
+  description: z.string().nullable().optional(),
+  drill_date: z.string(),
+  hours: z.number(),
+  instructor: z.string().nullable().optional(),
+  location: z.string().nullable().optional(),
+  iso_category: z.string().nullable().optional(),
+  attendee_ids: z.array(z.string().uuid()).optional(),
+});
+export type TrainingDrillCreate = z.infer<typeof TrainingDrillCreateSchema>;
+
+export const CertificationSchema = z.object({
+  id: z.string().uuid(),
+  department_id: z.string().uuid(),
+  user_id: z.string().uuid(),
+  cert_type: z.string(),
+  cert_number: z.string().nullable(),
+  issuing_body: z.string().nullable(),
+  issued_date: z.string(),
+  expiry_date: z.string(),
+  status: z.string(),
+  document_ref: z.string().nullable(),
+  days_until_expiry: z.number().nullable().optional(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+export type Certification = z.infer<typeof CertificationSchema>;
+
+export const CertificationCreateSchema = z.object({
+  user_id: z.string().uuid(),
+  cert_type: z.string(),
+  cert_number: z.string().nullable().optional(),
+  issuing_body: z.string().nullable().optional(),
+  issued_date: z.string(),
+  expiry_date: z.string(),
+  status: z.string().optional(),
+  document_ref: z.string().nullable().optional(),
+});
+export type CertificationCreate = z.infer<typeof CertificationCreateSchema>;
+
+export const MemberDetailSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  email: z.string(),
+  role: z.string(),
+  badge_number: z.string().nullable(),
+  shift_assignment: ShiftAssignmentSchema.nullable(),
+  shift_group: ShiftGroupSchema.nullable(),
+  total_hours_ytd: z.number(),
+  total_drills_ytd: z.number(),
+  certifications: z.array(CertificationSchema),
+  expiring_soon: z.number(),
+});
+export type MemberDetail = z.infer<typeof MemberDetailSchema>;
+
+export const ISOReportSchema = z.object({
+  department_id: z.string().uuid(),
+  year: z.number(),
+  total_training_hours: z.number(),
+  total_drills: z.number(),
+  member_compliance_pct: z.number(),
+  categories: z.array(z.object({
+    category: z.string(),
+    total_hours: z.number(),
+    drill_count: z.number(),
+    member_count: z.number(),
+  })),
+  generated_at: z.string(),
+});
+export type ISOReport = z.infer<typeof ISOReportSchema>;

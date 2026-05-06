@@ -4,23 +4,24 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 0 0% 9%;
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 9%;
-    --primary: 0 72% 51%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 0 0% 96%;
-    --secondary-foreground: 0 0% 9%;
-    --muted: 0 0% 96%;
-    --muted-foreground: 0 0% 45%;
-    --accent: 0 0% 96%;
-    --accent-foreground: 0 0% 9%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 90%;
-    --input: 0 0% 90%;
-    --ring: 0 72% 51%;
+    /* Dark-theme shadcn tokens — app is always dark */
+    --background: 222 14% 11%;        /* #1a1d22 (--steel) */
+    --foreground: 36 30% 92%;         /* #f3eee5 (--bone) */
+    --card: 222 14% 11%;
+    --card-foreground: 36 30% 92%;
+    --primary: 3 66% 47%;             /* #c8362c (--signal) */
+    --primary-foreground: 36 30% 92%;
+    --secondary: 224 13% 16%;         /* #242830 (--steel-2) */
+    --secondary-foreground: 36 30% 92%;
+    --muted: 224 13% 16%;
+    --muted-foreground: 220 5% 58%;   /* mid-dim text */
+    --accent: 224 13% 16%;
+    --accent-foreground: 36 30% 92%;
+    --destructive: 3 66% 47%;
+    --destructive-foreground: 36 30% 92%;
+    --border: 225 8% 21%;             /* slightly lifted from steel */
+    --input: 225 8% 21%;
+    --ring: 3 66% 47%;
     --radius: 0.5rem;
 
     --ink: #0e1013;
@@ -71,7 +72,7 @@ html {
 html,
 body {
   background: var(--ink);
-  color: var(--ink);
+  color: var(--bone);
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
 }

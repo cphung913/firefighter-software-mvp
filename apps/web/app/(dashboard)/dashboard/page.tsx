@@ -5,6 +5,8 @@ import { useLiveQuery } from "dexie-react-hooks";
 import type { IncidentRecord } from "@/lib/db";
 import { db } from "@/lib/db";
 import { cn } from "@/lib/utils";
+import { apiFetch } from "@/lib/api/client";
+import type { CalendarDay } from "@vfd/shared-types";
 
 // ─── Card primitives ──────────────────────────────────────────────────────────
 
@@ -508,6 +510,282 @@ function NerisCard() {
   );
 }
 
+// ─── OnDutyCard ───────────────────────────────────────────────────────────────
+
+function OnDutyCard() {
+  const [day, setDay] = useState<CalendarDay | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    apiFetch<CalendarDay[]>(`/api/v1/scheduling/calendar?start=${today}&end=${today}`)
+      .then((days) => setDay(days[0] ?? null))
+      .catch(() => setDay(null))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const count = day?.on_duty.length ?? 0;
+
+  return (
+    <Card tag="TODAY" className="col-span-12 xl:col-span-4">
+      <CardHead
+        title="On Duty"
+        meta={!loading ? `— ${count} PERSONNEL` : undefined}
+      />
+      {loading ? (
+        <div className="flex items-center justify-center" style={{ padding: "28px 16px" }}>
+          <span className="font-mono text-[11px] tracking-[0.14em] uppercase" style={{ color: "#7a786f" }}>
+            Loading…
+          </span>
+        </div>
+      ) : !day || count === 0 ? (
+        <div className="flex items-center justify-center" style={{ padding: "28px 16px" }}>
+          <span className="font-mono text-[11px] tracking-[0.14em] uppercase" style={{ color: "#7a786f" }}>
+            {day ? "No personnel scheduled today" : "Schedule not configured"}
+          </span>
+        </div>
+      ) : (
+        <div className="flex flex-col">
+          {day.on_duty.slice(0, 8).map((person, i) => (
+            <div
+              key={person.id}
+              className="flex items-center gap-3 px-4 py-2.5"
+              style={{ borderBottom: i < Math.min(count, 8) - 1 ? "1px solid var(--rule)" : undefined }}
+            >
+              <span
+                className="shrink-0 rounded-full"
+                style={{ width: 8, height: 8, background: person.group_color, display: "block" }}
+              />
+              <span className="flex-1 min-w-0 truncate font-mono text-[12px] tracking-[0.06em] text-[var(--bone)]">
+                {person.name}
+              </span>
+              {person.badge_number && (
+                <span className="font-mono text-[10px] tracking-[0.08em]" style={{ color: "#7a786f" }}>
+                  #{person.badge_number}
+                </span>
+              )}
+            </div>
+          ))}
+          {count > 8 && (
+            <div className="px-4 py-2.5 font-mono text-[10px] tracking-[0.1em] uppercase" style={{ color: "#7a786f" }}>
+              + {count - 8} more
+            </div>
+          )}
+          {!day.staffing_ok && (
+            <div
+              className="flex items-center gap-2 px-4 py-2.5 font-mono text-[11px] tracking-[0.06em] uppercase"
+              style={{ borderTop: "1px solid var(--rule)", color: "var(--signal)", background: "rgba(200,60,40,0.06)" }}
+            >
+              <span className="rounded-full shrink-0" style={{ width: 6, height: 6, background: "var(--signal)", display: "block" }} />
+              Below minimum staffing
+            </div>
+          )}
+        </div>
+      )}
+    </Card>
+  );
+}
+
+// ─── ExpiringCertsCard ────────────────────────────────────────────────────────
+
+const CERT_STATUS_COLOR: Record<string, { dot: string; text: string }> = {
+  active:   { dot: "bg-green-500",          text: "text-green-400" },
+  expiring: { dot: "bg-[var(--amber)]",      text: "text-[var(--amber)]" },
+  expired:  { dot: "bg-[var(--signal)]",     text: "text-[var(--signal)]" },
+};
+
+function ExpiringCertsCard() {
+  const today = new Date();
+  const ninetyDays = new Date(today);
+  ninetyDays.setDate(today.getDate() + 90);
+  const todayStr = today.toISOString().slice(0, 10);
+  const ninetyStr = ninetyDays.toISOString().slice(0, 10);
+
+  const expiring = useLiveQuery(
+    () =>
+      db.certifications
+        .where("expiry_date")
+        .belowOrEqual(ninetyStr)
+        .toArray()
+        .then((rows) =>
+          rows
+            .filter((r) => r.expiry_date !== undefined)
+            .sort((a, b) => (a.expiry_date ?? "").localeCompare(b.expiry_date ?? ""))
+            .slice(0, 8)
+        ),
+    []
+  );
+
+  const list = expiring ?? [];
+  const expiredCount = list.filter((c) => (c.expiry_date ?? "") < todayStr).length;
+  const soonCount = list.filter((c) => (c.expiry_date ?? "") >= todayStr).length;
+
+  function certStatus(expiryDate: string | undefined): "expired" | "expiring" | "active" {
+    if (!expiryDate) return "active";
+    if (expiryDate < todayStr) return "expired";
+    return "expiring";
+  }
+
+  function daysLabel(expiryDate: string | undefined): string {
+    if (!expiryDate) return "";
+    const diff = Math.ceil((new Date(expiryDate).getTime() - today.getTime()) / 86_400_000);
+    if (diff < 0) return `${Math.abs(diff)}d overdue`;
+    if (diff === 0) return "today";
+    return `in ${diff}d`;
+  }
+
+  return (
+    <Card tag="90 DAY" className="col-span-12 xl:col-span-4">
+      <CardHead
+        title="Cert Expirations"
+        meta={list.length > 0 ? `— ${expiredCount} EXPIRED · ${soonCount} SOON` : undefined}
+      />
+      {list.length === 0 ? (
+        <div className="flex items-center justify-center" style={{ padding: "28px 16px" }}>
+          <span className="font-mono text-[11px] tracking-[0.14em] uppercase" style={{ color: "#7a786f" }}>
+            All certifications current
+          </span>
+        </div>
+      ) : (
+        <div className="flex flex-col">
+          {list.map((cert, i) => {
+            const status = certStatus(cert.expiry_date);
+            const colors = CERT_STATUS_COLOR[status];
+            return (
+              <div
+                key={cert.local_id}
+                className="flex items-center gap-3 px-4 py-2.5"
+                style={{ borderBottom: i < list.length - 1 ? "1px solid var(--rule)" : undefined }}
+              >
+                <span
+                  className={cn("shrink-0 rounded-full", colors.dot)}
+                  style={{ width: 8, height: 8, display: "block" }}
+                />
+                <div className="flex-1 min-w-0">
+                  <p className="truncate font-mono text-[11.5px] tracking-[0.04em] text-[var(--bone)]">
+                    {cert.cert_type}
+                  </p>
+                </div>
+                <span className={cn("font-mono text-[10px] tracking-[0.08em] shrink-0", colors.text)}>
+                  {daysLabel(cert.expiry_date)}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </Card>
+  );
+}
+
+// ─── TrainingComplianceCard ───────────────────────────────────────────────────
+
+function TrainingComplianceCard() {
+  const yearStart = `${new Date().getFullYear()}-01-01`;
+
+  const drills = useLiveQuery(
+    () =>
+      db.training_drills
+        .where("drill_date")
+        .aboveOrEqual(yearStart)
+        .filter((d) => !d.is_deleted)
+        .toArray(),
+    []
+  );
+
+  const memberCount = useLiveQuery(() => db.department_users.count(), []);
+
+  const list = drills ?? [];
+  const totalHours = list.reduce((sum, d) => sum + (d.hours ?? 0), 0);
+  const totalDrills = list.length;
+
+  // Only count attendees of YTD drills for compliance
+  const ytdDrillIds = new Set(list.map((d) => d.local_id));
+  const attendees = useLiveQuery(
+    () =>
+      db.training_attendees
+        .toArray()
+        .then((all) => all.filter((a) => a.drill_id && ytdDrillIds.has(a.drill_id))),
+    [ytdDrillIds.size]
+  );
+
+  const activeMembers = memberCount ?? 0;
+  const attendeeSet = new Set((attendees ?? []).map((a) => a.user_id).filter(Boolean));
+  const trainedCount = attendeeSet.size;
+  const compliancePct = activeMembers === 0 ? 0 : Math.round((trainedCount / activeMembers) * 100);
+
+  const scoreColor =
+    compliancePct >= 90 ? "var(--green)" : compliancePct >= 60 ? "var(--amber)" : "var(--signal)";
+
+  const categoryMap = list.reduce<Record<string, number>>((acc, d) => {
+    const cat = d.iso_category ?? d.drill_type ?? "Other";
+    acc[cat] = (acc[cat] ?? 0) + (d.hours ?? 0);
+    return acc;
+  }, {});
+
+  const topCategories = Object.entries(categoryMap)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 4);
+
+  return (
+    <Card tag="YTD" className="col-span-12 xl:col-span-4">
+      <CardHead title="Training Compliance" meta={`— ${totalDrills} DRILLS`} />
+      <div className="flex flex-col gap-3.5 p-[18px]">
+        <div className="flex items-baseline justify-between">
+          <span
+            className="font-display font-semibold text-[38px] tracking-[0.04em] leading-none"
+            style={{ color: scoreColor, fontVariantNumeric: "tabular-nums" }}
+          >
+            {compliancePct}%
+          </span>
+          <span className="font-display font-semibold text-[11px] tracking-[0.18em] uppercase" style={{ color: "#7a786f" }}>
+            {totalHours.toFixed(1)} hrs logged
+          </span>
+        </div>
+
+        <div
+          className="relative overflow-hidden"
+          style={{ height: 10, background: "var(--steel-2)", border: "1px solid var(--rule-2)" }}
+        >
+          <div
+            className="absolute left-0 top-0 bottom-0 transition-all duration-500"
+            style={{ width: `${compliancePct}%`, background: `linear-gradient(90deg, var(--amber), ${scoreColor})` }}
+          >
+            <div
+              className="absolute inset-0"
+              style={{ backgroundImage: "repeating-linear-gradient(90deg, transparent 0 8px, rgba(0,0,0,0.2) 8px 9px)" }}
+            />
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-2">
+          {topCategories.length === 0 ? (
+            <span className="font-mono text-[11px] tracking-[0.06em] uppercase" style={{ color: "#7a786f" }}>
+              No drills logged this year
+            </span>
+          ) : (
+            topCategories.map(([cat, hrs]) => (
+              <div key={cat} className="flex items-center justify-between">
+                <span className="font-mono text-[11px] tracking-[0.06em]" style={{ color: "var(--bone-dim)" }}>
+                  {cat}
+                </span>
+                <span className="font-mono text-[11px] tracking-[0.04em]" style={{ color: "var(--bone)", fontVariantNumeric: "tabular-nums" }}>
+                  {hrs.toFixed(1)} hrs
+                </span>
+              </div>
+            ))
+          )}
+        </div>
+
+        <div className="flex items-center gap-2 font-mono text-[11px] tracking-[0.04em]" style={{ color: "var(--bone-dim)" }}>
+          <span className="rounded-full shrink-0" style={{ width: 8, height: 8, background: scoreColor, display: "block" }} />
+          {trainedCount} of {activeMembers} members trained this year
+        </div>
+      </div>
+    </Card>
+  );
+}
+
 // ─── Page skeleton (SSR-safe) ─────────────────────────────────────────────────
 
 function PageSkeleton() {
@@ -550,6 +828,9 @@ export default function DashboardPage() {
         <DispatchesCard />
         <IncidentTallyCard />
         <NerisCard />
+        <OnDutyCard />
+        <ExpiringCertsCard />
+        <TrainingComplianceCard />
       </div>
     </div>
   );

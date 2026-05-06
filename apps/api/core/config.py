@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "postgresql+asyncpg://vfd:vfd@localhost:5432/vfd"
     SECRET_KEY: str = "dev-only-change-me"
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 10080
     CORS_ORIGINS: str = "http://localhost:3000"
     ANTHROPIC_API_KEY: str = ""
     AI_MODEL: str = "claude-sonnet-4-6"

@@ -135,7 +135,94 @@ export interface VoiceLogRecord extends SyncMeta {
   sync_status?: string;
 }
 
-export type SyncTable = "incidents" | "apparatus" | "voice_logs" | "equipment" | "equipment_inspections" | "equipment_maintenance";
+// Scheduling (bootstrap-seeded, read-only cache — not in SyncTable)
+export interface ShiftPatternRecord {
+  id: string;
+  department_id: string;
+  name: string;
+  pattern_type: string;
+  cycle_length_days: number;
+  on_days: number;
+  off_days: number;
+  kelly_day_interval: number | null;
+  start_date: string;
+  is_active: boolean;
+  cached_at: string;
+}
+
+export interface ShiftGroupRecord {
+  id: string;
+  department_id: string;
+  pattern_id: string;
+  name: string;
+  color: string;
+  cycle_offset_days: number;
+  cached_at: string;
+}
+
+export interface ShiftAssignmentRecord {
+  id: string;
+  department_id: string;
+  user_id: string;
+  group_id: string;
+  start_date: string;
+  end_date: string | null;
+  cached_at: string;
+}
+
+// Training (full sync via pending_mutations)
+export interface TrainingDrillRecord extends SyncMeta {
+  drill_type?: string;
+  title?: string;
+  description?: string | null;
+  drill_date?: string;
+  hours?: number;
+  instructor?: string | null;
+  location?: string | null;
+  iso_category?: string | null;
+  created_by?: string | null;
+  is_deleted?: boolean;
+}
+
+export interface TrainingAttendeeRecord extends SyncMeta {
+  drill_id?: string;
+  user_id?: string;
+}
+
+export interface CertificationRecord extends SyncMeta {
+  user_id?: string;
+  cert_type?: string;
+  cert_number?: string | null;
+  issuing_body?: string | null;
+  issued_date?: string;
+  expiry_date?: string;
+  status?: string;
+  document_ref?: string | null;
+}
+
+export interface LeaveRequestRecord extends SyncMeta {
+  user_id?: string;
+  leave_type?: string;
+  start_date?: string;
+  end_date?: string;
+  notes?: string | null;
+  status?: string;
+  reviewed_by?: string | null;
+  reviewed_at?: string | null;
+}
+
+export interface ShiftTradeRecord extends SyncMeta {
+  requester_id?: string;
+  recipient_id?: string;
+  trade_date?: string;
+  return_date?: string | null;
+  notes?: string | null;
+  status?: string;
+  approved_by?: string | null;
+  approved_at?: string | null;
+}
+
+export type SyncTable = "incidents" | "apparatus" | "voice_logs" | "equipment" | "equipment_inspections" | "equipment_maintenance" | "training_drills" | "training_attendees" | "certifications" | "leave_requests" | "shift_trades";
 
 export type Operation = "upsert" | "delete";
 
@@ -179,6 +266,14 @@ export class VfdLocalDb extends Dexie {
   pending_mutations!: Table<PendingMutationRecord, number>;
   pending_audio!: Table<PendingAudioRecord, number>;
   sync_state!: Table<SyncStateRecord, string>;
+  shift_patterns!: Table<ShiftPatternRecord, string>;
+  shift_groups!: Table<ShiftGroupRecord, string>;
+  shift_assignments!: Table<ShiftAssignmentRecord, string>;
+  training_drills!: Table<TrainingDrillRecord, string>;
+  training_attendees!: Table<TrainingAttendeeRecord, string>;
+  certifications!: Table<CertificationRecord, string>;
+  leave_requests!: Table<LeaveRequestRecord, string>;
+  shift_trades!: Table<ShiftTradeRecord, string>;
 
   constructor() {
     super("vfdLocalDb");
@@ -260,6 +355,39 @@ export class VfdLocalDb extends Dexie {
       pending_mutations: "++id, table, local_id, client_timestamp",
       pending_audio: "++id, local_clip_id, session_id, created_at",
       sync_state: "key",
+    });
+    // v9: scheduling (bootstrap cache) and training (synced) tables
+    this.version(9).stores({
+      incidents:
+        "local_id, server_id, _sync_status, updated_at, incident_number, incident_type",
+      incident_drafts: "id, updated_at, incident_number",
+      department_users: "id, name, role, cached_at",
+      apparatus:
+        "local_id, server_id, _sync_status, updated_at, unit_id, service_status",
+      equipment:
+        "local_id, server_id, _sync_status, updated_at, equipment_type, status, next_inspection_due, name",
+      equipment_inspections:
+        "local_id, server_id, _sync_status, updated_at, equipment_local_id, inspection_date",
+      equipment_maintenance:
+        "local_id, server_id, _sync_status, updated_at, equipment_local_id, maintenance_date",
+      voice_sessions: "id, session_code, cached_at",
+      voice_logs: "local_id, server_id, _sync_status, updated_at, session_id",
+      pending_mutations: "++id, table, local_id, client_timestamp",
+      pending_audio: "++id, local_clip_id, session_id, created_at",
+      sync_state: "key",
+      shift_patterns: "id, pattern_type, is_active, cached_at",
+      shift_groups: "id, pattern_id, cached_at",
+      shift_assignments: "id, user_id, group_id, start_date, cached_at",
+      training_drills:
+        "local_id, server_id, _sync_status, updated_at, drill_type, drill_date, is_deleted",
+      training_attendees:
+        "local_id, server_id, _sync_status, updated_at, drill_id, user_id",
+      certifications:
+        "local_id, server_id, _sync_status, updated_at, user_id, cert_type, expiry_date",
+      leave_requests:
+        "local_id, server_id, _sync_status, updated_at, user_id, status, start_date",
+      shift_trades:
+        "local_id, server_id, _sync_status, updated_at, requester_id, recipient_id, status",
     });
   }
 }

@@ -5,6 +5,7 @@ from typing import Any
 from pydantic import BaseModel
 
 from schemas.assets import ApparatusOut
+from schemas.scheduling import ShiftAssignmentOut, ShiftGroupOut
 
 
 class IncidentRosterUserOut(BaseModel):
@@ -17,6 +18,10 @@ class IncidentRosterUserOut(BaseModel):
 class IncidentBootstrapResponse(BaseModel):
     apparatus: list[ApparatusOut]
     users: list[IncidentRosterUserOut]
+    shift_groups: list[ShiftGroupOut] = []
+    shift_assignments: list[ShiftAssignmentOut] = []
+    my_assignment: ShiftAssignmentOut | None = None
+    expiring_certs_count: int = 0
 
 
 class IncidentCreateRequest(BaseModel):

@@ -6,6 +6,9 @@ import {
   Truck,
   Wrench,
   Settings,
+  Users,
+  CalendarDays,
+  GraduationCap,
 } from "lucide-react";
 
 export type NavItem = {
@@ -32,6 +35,14 @@ export const NAV_GROUPS: NavGroup[] = [
       { href: "/equipment", label: "Equipment", icon: Wrench },
     ],
   },
+  {
+    label: "Personnel",
+    items: [
+      { href: "/roster", label: "Roster", icon: Users },
+      { href: "/schedule", label: "Schedule", icon: CalendarDays },
+      { href: "/training", label: "Training", icon: GraduationCap },
+    ],
+  },
 ];
 
 export const NAV_ITEMS: NavItem[] = [
@@ -42,7 +53,7 @@ export const NAV_ITEMS: NavItem[] = [
 export const MOBILE_PRIMARY: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/incidents", label: "Incidents", icon: Siren },
-  { href: "/dispatch", label: "Dispatch", icon: Radio },
+  { href: "/roster", label: "Roster", icon: Users },
   { href: "/apparatus", label: "Apparatus", icon: Truck },
-  { href: "/equipment", label: "Equipment", icon: Wrench },
+  { href: "/training", label: "Training", icon: GraduationCap },
 ];
