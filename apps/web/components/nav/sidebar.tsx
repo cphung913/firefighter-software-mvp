@@ -66,8 +66,14 @@ export function Sidebar() {
       {/* nav groups */}
       <nav className="flex-1 overflow-y-auto py-1">
         {NAV_GROUPS.map((group) => {
-          const isActive = (href: string) =>
-            pathname === href || pathname.startsWith(`${href}/`);
+          const isActive = (href: string) => {
+            if (href === "/incidents") {
+              if (pathname === "/incidents") return true;
+              if (pathname.startsWith("/incidents/review")) return false;
+              return pathname.startsWith("/incidents/");
+            }
+            return pathname === href || pathname.startsWith(`${href}/`);
+          };
 
           return (
             <div key={group.label} className="pb-3">
@@ -89,7 +95,12 @@ export function Sidebar() {
                   </span>
                 )}
               </div>
-              {group.items.map((item) => {
+              {group.items
+                .filter(
+                  (item) =>
+                    !item.adminOnly || session?.role === "admin"
+                )
+                .map((item) => {
                 const active = isActive(item.href);
                 const Icon = item.icon;
                 return (

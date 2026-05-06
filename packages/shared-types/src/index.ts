@@ -70,6 +70,7 @@ export const IncidentOutSchema = z.object({
   local_id: z.string().nullable(),
   incident_number: z.string().nullable(),
   incident_type: z.string().nullable(),
+  priority: z.string().nullable().optional(),
   location_address: z.string().nullable(),
   location_lat: z.number().nullable(),
   location_lng: z.number().nullable(),
@@ -88,15 +89,31 @@ export const IncidentOutSchema = z.object({
   property_use: z.string().nullable(),
   raw_data: z.record(z.string(), z.unknown()),
   sync_status: z.string(),
+  report_status: z.string().default("draft"),
+  reviewed_by: z.string().uuid().nullable().optional(),
+  reviewed_at: z.string().nullable().optional(),
+  review_notes: z.string().nullable().optional(),
+  neris_exported_at: z.string().nullable().optional(),
   created_by: z.string().uuid().nullable(),
   created_at: z.string(),
   updated_at: z.string(),
 });
 export type IncidentOut = z.infer<typeof IncidentOutSchema>;
 
+export const BulkNerisExportRequestSchema = z.object({
+  incident_ids: z.array(z.string().uuid()),
+});
+export type BulkNerisExportRequest = z.infer<typeof BulkNerisExportRequestSchema>;
+
+export const IncidentReviewRequestSchema = z.object({
+  notes: z.string().nullable().optional(),
+});
+export type IncidentReviewRequest = z.infer<typeof IncidentReviewRequestSchema>;
+
 export const IncidentCreateRequestSchema = z.object({
   local_id: z.string().nullable().optional(),
   incident_type: z.string().nullable().optional(),
+  priority: z.string().nullable().optional(),
   location_address: z.string().nullable().optional(),
   location_lat: z.number().nullable().optional(),
   location_lng: z.number().nullable().optional(),

@@ -6,6 +6,7 @@ import {
   ArrowRight,
   CheckCircle2,
   CloudOff,
+  Copy,
   Database,
   Download,
   FileSpreadsheet,
@@ -16,7 +17,9 @@ import {
   Truck,
   Upload,
   UserPlus,
+  Webhook,
   X,
+  XCircle,
 } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
 import type {
@@ -41,6 +44,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { hydrateIncidentBootstrap } from "@/lib/incidents/bootstrap";
 import { createApparatus } from "@/lib/assets/api";
+import { apiFetch } from "@/lib/api/client";
 import {
   commitImportPreview,
   fetchImportPreview,
@@ -50,6 +54,8 @@ import { createPersonnel } from "@/lib/roster/api";
 import { runSync } from "@/lib/sync/engine";
 import { cn } from "@/lib/utils";
 import { useSyncStore } from "@/store/sync-store";
+
+import { PushNotificationSettings } from "./push-notification-settings";
 
 const ENTITY_LABELS: Record<ImportEntityType, string> = {
   apparatus: "Apparatus",
@@ -182,6 +188,143 @@ function topChangedFields(section: ImportPreviewSection): string[] {
     .sort((left, right) => right[1] - left[1])
     .slice(0, 4)
     .map(([field]) => field);
+}
+
+function CadIntegrationSettings() {
+  const { data: session, status: sessionStatus } = useSession();
+  const online = useSyncStore((s) => s.online);
+  const [webhookUrl, setWebhookUrl] = useState("");
+  const [copied, setCopied] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [testOk, setTestOk] = useState<boolean | null>(null);
+  const [testMessage, setTestMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    setWebhookUrl(`${window.location.origin}/api/proxy/api/v1/cad/webhook`);
+  }, []);
+
+  async function copyUrl() {
+    if (!webhookUrl) return;
+    await navigator.clipboard.writeText(webhookUrl);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 2000);
+  }
+
+  async function testConnection() {
+    if (!session?.departmentId) return;
+    setTesting(true);
+    setTestOk(null);
+    setTestMessage(null);
+    try {
+      const res = await apiFetch<{ status: string; message: string }>(
+        "/api/v1/cad/test",
+        {
+          headers: {
+            "X-Department-ID": session.departmentId,
+          },
+        }
+      );
+      setTestOk(true);
+      setTestMessage(res.message ?? "CAD webhook endpoint is active");
+    } catch (error) {
+      setTestOk(false);
+      setTestMessage(
+        error instanceof Error ? error.message : "Connection test failed."
+      );
+    } finally {
+      setTesting(false);
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-xl">
+          <Webhook className="h-5 w-5 text-primary" />
+          CAD Integration
+        </CardTitle>
+        <CardDescription>
+          Configure your CAD system to POST dispatches to the webhook URL below.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="space-y-2">
+          <Label>Webhook URL</Label>
+          <div className="flex flex-wrap items-center gap-2">
+            <Input
+              readOnly
+              value={webhookUrl || "—"}
+              className="font-mono text-xs md:text-sm max-w-xl"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => void copyUrl()}
+              disabled={!webhookUrl}
+            >
+              <Copy className="h-4 w-4 mr-2" />
+              {copied ? "Copied" : "Copy URL"}
+            </Button>
+          </div>
+        </div>
+        <div className="space-y-2">
+          <Label>Required headers</Label>
+          <div className="rounded-md border bg-muted/30 px-3 py-2 font-mono text-xs md:text-sm max-w-xl space-y-1.5">
+            <div>X-Department-ID: {"<your-department-uuid>"}</div>
+            <div className="text-muted-foreground">
+              Or use X-Department-FDID with your department&apos;s FDID instead of the UUID.
+            </div>
+            <div>
+              X-CAD-Secret: {"<secret>"}{" "}
+              <span className="text-muted-foreground">(optional)</span>
+            </div>
+          </div>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          CAD integration uses these headers only (no Bearer token). Set{" "}
+          <span className="font-mono">CAD_WEBHOOK_SECRET</span> in your API environment to require{" "}
+          <span className="font-mono">X-CAD-Secret</span>.
+        </p>
+        <div className="flex flex-wrap items-center gap-3">
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={() => void testConnection()}
+            disabled={
+              !online ||
+              sessionStatus !== "authenticated" ||
+              !session?.departmentId
+            }
+          >
+            {testing ? (
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            ) : null}
+            Test connection
+          </Button>
+          {testOk === true ? (
+            <span className="inline-flex items-center gap-1.5 text-sm text-emerald-700">
+              <CheckCircle2 className="h-4 w-4 shrink-0" />
+              {testMessage}
+            </span>
+          ) : null}
+          {testOk === false ? (
+            <span className="inline-flex items-center gap-1.5 text-sm text-destructive">
+              <XCircle className="h-4 w-4 shrink-0" />
+              {testMessage}
+            </span>
+          ) : null}
+        </div>
+        {!online ? (
+          <p className="text-xs text-amber-800 dark:text-amber-200">
+            Connect to the network to test the CAD endpoint.
+          </p>
+        ) : null}
+      </CardContent>
+    </Card>
+  );
 }
 
 export function SettingsWorkspace() {
@@ -480,6 +623,10 @@ export function SettingsWorkspace() {
           Department import tools and migration controls.
         </p>
       </div>
+
+      <PushNotificationSettings />
+
+      <CadIntegrationSettings />
 
       <Card>
         <CardHeader>

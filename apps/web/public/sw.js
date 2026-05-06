@@ -21,6 +21,34 @@ self.addEventListener("activate", (event) => {
   );
 });
 
+self.addEventListener("push", function (event) {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    data = {};
+  }
+  const title = data.title || "Station Boss Alert";
+  const options = {
+    body: data.body || "",
+    icon: "/icon-192.png",
+    badge: "/icon-72.png",
+    data: { url: data.url || "/dispatch" },
+    vibrate: [200, 100, 200],
+    requireInteraction: true,
+  };
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener("notificationclick", function (event) {
+  event.notification.close();
+  const relativeUrl = event.notification.data?.url || "/dispatch";
+  const absoluteUrl = relativeUrl.startsWith("http")
+    ? relativeUrl
+    : self.location.origin + relativeUrl;
+  event.waitUntil(clients.openWindow(absoluteUrl));
+});
+
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   const url = new URL(request.url);

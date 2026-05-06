@@ -1,5 +1,6 @@
 import {
   type LucideIcon,
+  BarChart3,
   LayoutDashboard,
   Siren,
   Radio,
@@ -16,6 +17,7 @@ export type NavItem = {
   label: string;
   icon: LucideIcon;
   badge?: number;
+  adminOnly?: boolean;
 };
 
 export type NavGroup = {
@@ -30,6 +32,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
       { href: "/incidents", label: "Incidents", icon: Siren },
+      { href: "/analytics", label: "Analytics", icon: BarChart3 },
       { href: "/dispatch", label: "Dispatch", icon: Radio },
       { href: "/apparatus", label: "Apparatus", icon: Truck },
       { href: "/equipment", label: "Equipment", icon: Wrench },

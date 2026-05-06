@@ -14,7 +14,7 @@ from services.assets_service import get_apparatus_list
 
 router = APIRouter(prefix="/assets", tags=["assets"])
 
-VALID_STATUSES = {"available", "responding", "out_of_service"}
+VALID_STATUSES = {"available", "responding", "on_scene", "transporting", "out_of_service"}
 
 
 @router.get("/apparatus", response_model=list[ApparatusOut])

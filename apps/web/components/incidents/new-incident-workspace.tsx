@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
@@ -14,10 +15,16 @@ import {
 } from "@/components/ui/card";
 import { IncidentForm } from "@/components/incidents/incident-form";
 
-const DRAFT_ID = "active-incident-draft";
+const FALLBACK_DRAFT_ID = "active-incident-draft";
 
-export function NewIncidentWorkspace() {
+interface NewIncidentWorkspaceProps {
+  draftId?: string;
+}
+
+export function NewIncidentWorkspace({ draftId: dispatchDraftId }: NewIncidentWorkspaceProps) {
   const router = useRouter();
+  const resolvedDraftId = dispatchDraftId ?? FALLBACK_DRAFT_ID;
+  const [showDispatchBanner, setShowDispatchBanner] = useState(Boolean(dispatchDraftId));
 
   return (
     <div className="space-y-6">
@@ -35,14 +42,21 @@ export function NewIncidentWorkspace() {
         </p>
       </div>
 
-      <Card className="bg-[var(--bone)] border-[#d6cfbf]">
+      {showDispatchBanner && dispatchDraftId ? (
+        <div className="border border-[#d6cfbf] bg-[#ede8de]/90 px-4 py-2.5 font-body text-[13px] text-[#4a4842]">
+          Loading draft from cleared dispatch...
+        </div>
+      ) : null}
+
+      <Card className="bg-[var(--bone)] border-[#d6cfbf] text-[var(--ink)] [&_input]:border-b-[#1a1d22] [&_input]:text-[var(--ink)] [&_input]:placeholder:text-[#a09a8e]">
         <CardHeader>
           <CardTitle className="text-[var(--ink)]">New incident report</CardTitle>
           <CardDescription className="text-[#4a4842]">NERIS-aligned. Saves offline, syncs when signal returns.</CardDescription>
         </CardHeader>
         <CardContent>
           <IncidentForm
-            draftId={DRAFT_ID}
+            draftId={resolvedDraftId}
+            onBootstrapComplete={dispatchDraftId ? () => setShowDispatchBanner(false) : undefined}
             submitLabel="Log incident"
             onSubmitSuccess={() => router.push("/incidents")}
           />

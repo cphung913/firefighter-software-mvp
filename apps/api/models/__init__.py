@@ -1,8 +1,11 @@
 from models.apparatus import Apparatus
+from models.attachment import IncidentAttachment
 from models.base import Base
 from models.department import Department
 from models.equipment import Equipment, EquipmentInspection, EquipmentMaintenance
 from models.incident import Incident
+from models.mutual_aid import MutualAidAgency, MutualAidAssignment
+from models.notification import PushSubscription
 from models.scheduling import LeaveRequest, ShiftAssignment, ShiftGroup, ShiftPattern, ShiftTrade
 from models.sync_record import SyncRecord
 from models.training import Certification, TrainingAttendee, TrainingDrill
@@ -19,7 +22,11 @@ __all__ = [
     "EquipmentInspection",
     "EquipmentMaintenance",
     "Incident",
+    "IncidentAttachment",
     "LeaveRequest",
+    "MutualAidAgency",
+    "MutualAidAssignment",
+    "PushSubscription",
     "ShiftAssignment",
     "ShiftGroup",
     "ShiftPattern",

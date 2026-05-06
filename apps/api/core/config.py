@@ -14,6 +14,12 @@ class Settings(BaseSettings):
     ANTHROPIC_API_KEY: str = ""
     AI_MODEL: str = "claude-sonnet-4-6"
 
+    VAPID_PRIVATE_KEY: str | None = None
+    VAPID_PUBLIC_KEY: str | None = None
+    VAPID_CLAIM_EMAIL: str = "admin@stationboss.com"
+
+    CAD_WEBHOOK_SECRET: str | None = None  # Shared secret for validating CAD webhook calls
+
     @property
     def cors_origins_list(self) -> list[str]:
         return [o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip()]

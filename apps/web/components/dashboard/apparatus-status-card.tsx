@@ -5,25 +5,42 @@ import { db, type ApparatusRecord } from "@/lib/db";
 import { updateApparatusStatus } from "@/lib/assets/api";
 import { cn } from "@/lib/utils";
 
-type ServiceStatus = "available" | "responding" | "out_of_service";
+type ServiceStatus =
+  | "available"
+  | "responding"
+  | "on_scene"
+  | "transporting"
+  | "out_of_service";
 
-const STATUS_CYCLE: ServiceStatus[] = ["available", "responding", "out_of_service"];
+const STATUS_CYCLE: ServiceStatus[] = [
+  "available",
+  "responding",
+  "on_scene",
+  "transporting",
+  "out_of_service",
+];
 
 const STATUS_LABEL: Record<ServiceStatus, string> = {
   available: "Available",
   responding: "Responding",
+  on_scene: "On Scene",
+  transporting: "Transporting",
   out_of_service: "Out of Service",
 };
 
 const STATUS_DOT: Record<ServiceStatus, string> = {
   available: "bg-green-500",
   responding: "bg-[var(--amber)]",
+  on_scene: "bg-teal-400",
+  transporting: "bg-purple-400",
   out_of_service: "bg-[var(--signal)]",
 };
 
 const STATUS_TEXT: Record<ServiceStatus, string> = {
   available: "text-green-400",
   responding: "text-[var(--amber)]",
+  on_scene: "text-teal-300",
+  transporting: "text-purple-300",
   out_of_service: "text-[var(--signal)]",
 };
 
@@ -34,7 +51,8 @@ interface Props {
 
 function nextStatus(current: string): ServiceStatus {
   const idx = STATUS_CYCLE.indexOf(current as ServiceStatus);
-  return STATUS_CYCLE[(idx + 1) % STATUS_CYCLE.length];
+  const safeIdx = idx >= 0 ? idx : 0;
+  return STATUS_CYCLE[(safeIdx + 1) % STATUS_CYCLE.length];
 }
 
 function normalizeStatus(value: string | undefined): ServiceStatus {

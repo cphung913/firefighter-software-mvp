@@ -78,7 +78,7 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <div className="border border-[#d6cfbf] bg-white p-8">
+    <div className="border border-[#d6cfbf] bg-white p-8 text-[var(--ink)] [&_input]:border-b-[#1a1d22] [&_input]:placeholder:text-[#a09a8e]">
       <div className="mb-8">
         <h1 className="font-display text-[28px] uppercase tracking-[0.02em] font-medium text-[var(--ink)]">
           Sign In

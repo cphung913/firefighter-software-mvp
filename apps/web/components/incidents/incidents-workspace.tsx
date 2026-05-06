@@ -16,6 +16,7 @@ import {
   Truck,
   Users,
 } from "lucide-react";
+import Link from "next/link";
 import { useSession } from "next-auth/react";
 
 import { Button } from "@/components/ui/button";
@@ -270,7 +271,7 @@ function lookupOptionLabel(
 }
 
 export function IncidentsWorkspace() {
-  const { status: sessionStatus } = useSession();
+  const { data: session, status: sessionStatus } = useSession();
   const online = useSyncStore((state) => state.online);
   const pendingCount = useSyncStore((state) => state.pendingCount);
   const lastSyncAt = useSyncStore((state) => state.lastSyncAt);
@@ -588,6 +589,21 @@ export function IncidentsWorkspace() {
           when the signal comes back.
         </p>
       </div>
+
+      {session?.role === "admin" ? (
+        <div className="rounded-lg border border-dashed bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+          <p>
+            Approve reports before exporting to NERIS. Use checkboxes in the list
+            to bulk-export multiple incidents.
+          </p>
+          <Link
+            href="/incidents/review"
+            className="mt-2 inline-block font-medium text-primary hover:underline"
+          >
+            Review Queue →
+          </Link>
+        </div>
+      ) : null}
 
       <div className="flex flex-wrap gap-2 text-sm">
         <span className="rounded-full bg-muted px-3 py-1 text-muted-foreground">

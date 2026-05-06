@@ -30,6 +30,7 @@ interface FormState {
   location_lat: string;
   location_lng: string;
   alarm_time: string;
+  priority: string;
   units_responding: string[];
   personnel_on_scene: string[];
   narrative: string;
@@ -101,6 +102,7 @@ export function DispatchForm() {
     location_lat: "",
     location_lng: "",
     alarm_time: formatDateTimeLocal(new Date()),
+    priority: "medium",
     units_responding: [],
     personnel_on_scene: [],
     narrative: "",
@@ -246,6 +248,7 @@ export function DispatchForm() {
           raw_data: {
             units_responding_labels:  selectedUnits.map((u) => u.unit_id ?? "Apparatus"),
             personnel_on_scene_names: selectedPersonnel.map((m) => m.name),
+            priority: form.priority,
           },
         },
       });
@@ -378,6 +381,21 @@ export function DispatchForm() {
       </div>
 
       <div className="space-y-2">
+        <Label htmlFor="dispatch-priority">Priority</Label>
+        <select
+          id="dispatch-priority"
+          value={form.priority}
+          onChange={(e) => update("priority", e.target.value)}
+          className="h-11 w-full border-0 border-b border-b-[var(--steel)] bg-transparent px-0 py-2 font-body text-[15px] text-[var(--ink)] focus:outline-none focus:border-b-[var(--signal)]"
+        >
+          <option value="low">Low</option>
+          <option value="medium">Medium</option>
+          <option value="high">High</option>
+          <option value="critical">Critical</option>
+        </select>
+      </div>
+
+      <div className="space-y-2">
         <Label htmlFor="location-address">
           Address <span className="text-[var(--signal)]">*</span>
         </Label>
@@ -442,11 +460,15 @@ export function DispatchForm() {
   const STATUS_COLOR: Record<string, string> = {
     available:     "text-green-700",
     responding:    "text-amber-600",
+    on_scene:      "text-teal-700",
+    transporting:  "text-purple-700",
     out_of_service: "text-[var(--signal)]",
   };
   const STATUS_DISPLAY: Record<string, string> = {
     available:      "Available",
     responding:     "Responding",
+    on_scene:       "On Scene",
+    transporting:   "Transporting",
     out_of_service: "Out of Service",
   };
 
@@ -463,7 +485,11 @@ export function DispatchForm() {
             const key      = apparatusKey(unit);
             const selected = form.units_responding.includes(key);
             const statusVal = unit.service_status ?? "available";
-            const isUnavailable = statusVal === "out_of_service" || statusVal === "responding";
+            const isUnavailable =
+              statusVal === "out_of_service" ||
+              statusVal === "responding" ||
+              statusVal === "on_scene" ||
+              statusVal === "transporting";
 
             return (
               <button

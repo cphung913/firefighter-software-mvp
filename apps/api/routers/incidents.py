@@ -1,5 +1,5 @@
 import uuid
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -15,10 +15,14 @@ from models.training import Certification
 from models.user import User
 from schemas.assets import ApparatusOut
 from schemas.incident import (
+    BulkNerisExportRequest,
+    BulkNerisExportResponse,
     IncidentBootstrapResponse,
     IncidentCreateRequest,
     IncidentOut,
+    IncidentReviewRequest,
     IncidentRosterUserOut,
+    IncidentSubmitRequest,
     IncidentTaxonomyResponse,
     IncidentUpdateRequest,
     TaxonomyOption,
@@ -170,6 +174,173 @@ async def create_incident(
         },
     )
     db.add(incident)
+    await db.commit()
+    await db.refresh(incident)
+    return IncidentOut.model_validate(incident, from_attributes=True)
+
+
+@router.post("/export/neris", response_model=BulkNerisExportResponse)
+async def bulk_export_neris(
+    payload: BulkNerisExportRequest,
+    _admin: User = Depends(require_admin),
+    department: Department = Depends(get_current_department),
+    db: AsyncSession = Depends(get_db),
+) -> BulkNerisExportResponse:
+    """Export multiple incidents as NERIS JSON and mark them as exported."""
+    if not payload.incident_ids:
+        raise HTTPException(status_code=400, detail="No incident IDs provided")
+
+    requested = set(payload.incident_ids)
+    result = await db.scalars(
+        select(Incident).where(
+            Incident.department_id == department.id,
+            Incident.id.in_(payload.incident_ids),
+        )
+    )
+    incidents_all = list(result.all())
+    if len(incidents_all) != len(requested):
+        raise HTTPException(status_code=404, detail="One or more incidents not found")
+
+    approved_result = await db.scalars(
+        select(Incident).where(
+            Incident.department_id == department.id,
+            Incident.id.in_(payload.incident_ids),
+            Incident.report_status == "approved",
+        )
+    )
+    approved_incidents = list(approved_result.all())
+    skipped_count = len(incidents_all) - len(approved_incidents)
+
+    exported_at = datetime.now(timezone.utc)
+    neris_objects: list[dict] = []
+    for inc in approved_incidents:
+        neris_objects.append(to_neris_json(inc, department))
+        inc.neris_exported_at = exported_at
+
+    await db.commit()
+    return BulkNerisExportResponse(
+        exported_count=len(approved_incidents),
+        skipped_count=skipped_count,
+        incidents=neris_objects,
+        exported_at=exported_at.isoformat(),
+    )
+
+
+@router.post("/{incident_id}/mark-exported", response_model=IncidentOut)
+async def mark_exported(
+    incident_id: uuid.UUID,
+    _admin: User = Depends(require_admin),
+    department: Department = Depends(get_current_department),
+    db: AsyncSession = Depends(get_db),
+) -> IncidentOut:
+    incident = await db.scalar(
+        select(Incident).where(
+            Incident.id == incident_id,
+            Incident.department_id == department.id,
+        )
+    )
+    if incident is None:
+        raise HTTPException(status_code=404, detail="Incident not found")
+
+    incident.neris_exported_at = datetime.now(timezone.utc)
+    await db.commit()
+    await db.refresh(incident)
+    return IncidentOut.model_validate(incident, from_attributes=True)
+
+
+@router.get("/review-queue", response_model=list[IncidentOut])
+async def get_review_queue(
+    _admin: User = Depends(require_admin),
+    department: Department = Depends(get_current_department),
+    db: AsyncSession = Depends(get_db),
+) -> list[IncidentOut]:
+    rows = (
+        await db.scalars(
+            select(Incident)
+            .where(
+                Incident.department_id == department.id,
+                Incident.report_status == "submitted",
+            )
+            .order_by(Incident.updated_at.desc())
+        )
+    ).all()
+    return [IncidentOut.model_validate(row, from_attributes=True) for row in rows]
+
+
+@router.post("/{incident_id}/submit", response_model=IncidentOut)
+async def submit_incident_for_review(
+    incident_id: uuid.UUID,
+    _payload: IncidentSubmitRequest,
+    _user: User = Depends(get_current_user),
+    department: Department = Depends(get_current_department),
+    db: AsyncSession = Depends(get_db),
+) -> IncidentOut:
+    incident = await db.scalar(
+        select(Incident).where(
+            Incident.id == incident_id,
+            Incident.department_id == department.id,
+        )
+    )
+    if incident is None:
+        raise HTTPException(status_code=404, detail="Incident not found")
+    if incident.report_status not in ("draft", "rejected"):
+        raise HTTPException(
+            status_code=409,
+            detail="Incident already submitted or approved",
+        )
+    incident.report_status = "submitted"
+    await db.commit()
+    await db.refresh(incident)
+    return IncidentOut.model_validate(incident, from_attributes=True)
+
+
+@router.post("/{incident_id}/approve", response_model=IncidentOut)
+async def approve_incident_review(
+    incident_id: uuid.UUID,
+    payload: IncidentReviewRequest,
+    admin: User = Depends(require_admin),
+    department: Department = Depends(get_current_department),
+    db: AsyncSession = Depends(get_db),
+) -> IncidentOut:
+    incident = await db.scalar(
+        select(Incident).where(
+            Incident.id == incident_id,
+            Incident.department_id == department.id,
+        )
+    )
+    if incident is None:
+        raise HTTPException(status_code=404, detail="Incident not found")
+    now = datetime.now(timezone.utc)
+    incident.report_status = "approved"
+    incident.reviewed_by = admin.id
+    incident.reviewed_at = now
+    incident.review_notes = payload.notes
+    await db.commit()
+    await db.refresh(incident)
+    return IncidentOut.model_validate(incident, from_attributes=True)
+
+
+@router.post("/{incident_id}/reject", response_model=IncidentOut)
+async def reject_incident_review(
+    incident_id: uuid.UUID,
+    payload: IncidentReviewRequest,
+    admin: User = Depends(require_admin),
+    department: Department = Depends(get_current_department),
+    db: AsyncSession = Depends(get_db),
+) -> IncidentOut:
+    incident = await db.scalar(
+        select(Incident).where(
+            Incident.id == incident_id,
+            Incident.department_id == department.id,
+        )
+    )
+    if incident is None:
+        raise HTTPException(status_code=404, detail="Incident not found")
+    now = datetime.now(timezone.utc)
+    incident.report_status = "rejected"
+    incident.reviewed_by = admin.id
+    incident.reviewed_at = now
+    incident.review_notes = payload.notes
     await db.commit()
     await db.refresh(incident)
     return IncidentOut.model_validate(incident, from_attributes=True)

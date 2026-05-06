@@ -1,10 +1,12 @@
 "use client";
 
-import { Fragment, useCallback, useEffect, useRef, useState } from "react";
+import React, { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
   AlertTriangle,
   Check,
+  ChevronDown,
+  ChevronUp,
   CloudOff,
   Crosshair,
   FileText,
@@ -17,10 +19,12 @@ import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import type { ApparatusRecord, DepartmentUserRecord, IncidentRecord } from "@/lib/db";
 import { db } from "@/lib/db";
+import { DisciplineFields } from "@/components/incidents/discipline-fields";
+import { NarrativeBuilder } from "@/components/incidents/narrative-builder";
 import { hydrateIncidentBootstrap } from "@/lib/incidents/bootstrap";
+import { nerisScore, validateNerisReadiness } from "@/lib/incidents/neris-validator";
 import {
   ACTION_TAKEN_OPTIONS,
   NERIS_INCIDENT_TYPES,
@@ -55,12 +59,15 @@ export interface IncidentFormState {
   narrative: string;
   actions_taken: string[];
   property_use: string;
+  discipline_data: Record<string, unknown>;
 }
 
 export interface IncidentFormProps {
   existingLocalId?: string;
   initialData?: Partial<IncidentFormState>;
   draftId?: string;
+  /** Called once when initial bootstrap (draft/resources) finishes and the form is interactive. */
+  onBootstrapComplete?: () => void;
   onSubmitSuccess?: (localId: string) => void;
   submitLabel?: string;
 }
@@ -77,6 +84,32 @@ const STEPS = [
 ] as const;
 
 type StepId = (typeof STEPS)[number]["id"];
+
+const NERIS_STEP1_FIELDS = new Set<string>(["incident_number", "incident_type"]);
+const NERIS_STEP2_FIELDS = new Set<string>([
+  "location",
+  "location_address",
+  "location_lat",
+  "location_lng",
+  "alarm_time",
+  "dispatch_time",
+  "en_route_time",
+  "on_scene_time",
+  "controlled_time",
+  "cleared_time",
+]);
+const NERIS_STEP3_FIELDS = new Set<string>(["units_responding", "personnel_on_scene"]);
+
+function nerisIssueForStep(issueField: string, step: StepId): boolean {
+  if (step === 1) return NERIS_STEP1_FIELDS.has(issueField);
+  if (step === 2) return NERIS_STEP2_FIELDS.has(issueField);
+  if (step === 3) return NERIS_STEP3_FIELDS.has(issueField);
+  return (
+    !NERIS_STEP1_FIELDS.has(issueField) &&
+    !NERIS_STEP2_FIELDS.has(issueField) &&
+    !NERIS_STEP3_FIELDS.has(issueField)
+  );
+}
 
 // Required fields per step — used for step-level error indicators
 const STEP_REQUIRED: Record<StepId, (keyof IncidentFormState)[]> = {
@@ -161,6 +194,7 @@ export function createBlankForm(): IncidentFormState {
     narrative: "",
     actions_taken: [],
     property_use: "",
+    discipline_data: {},
   };
 }
 
@@ -191,6 +225,14 @@ function apparatusKey(unit: ApparatusRecord): string {
   return unit.local_id ?? unit.server_id ?? unit.unit_id ?? "";
 }
 
+function readDisciplineData(raw: Record<string, unknown>): Record<string, unknown> {
+  const d = raw.discipline;
+  if (d && typeof d === "object" && !Array.isArray(d)) {
+    return { ...(d as Record<string, unknown>) };
+  }
+  return {};
+}
+
 export function incidentRecordToForm(record: IncidentRecord): IncidentFormState {
   const raw = (record.raw_data ?? {}) as Record<string, unknown>;
   return {
@@ -213,6 +255,7 @@ export function incidentRecordToForm(record: IncidentRecord): IncidentFormState 
     narrative: record.narrative ?? "",
     actions_taken: record.actions_taken ?? readStringArray(raw.actions_taken),
     property_use: record.property_use ?? (typeof raw.property_use === "string" ? raw.property_use : ""),
+    discipline_data: readDisciplineData(raw),
   };
 }
 
@@ -226,6 +269,43 @@ function FieldError({ message }: { message: string | null | undefined }) {
 }
 
 // ---------------------------------------------------------------------------
+// Section tag component + field label map
+// ---------------------------------------------------------------------------
+
+const FIELD_LABELS: Record<string, string> = {
+  incident_number:   "Incident number",
+  incident_type:     "Incident type",
+  location:          "Location",
+  location_address:  "Address",
+  location_lat:      "Latitude",
+  location_lng:      "Longitude",
+  alarm_time:        "Alarm time",
+  dispatch_time:     "Dispatch time",
+  en_route_time:     "En route time",
+  on_scene_time:     "On scene time",
+  controlled_time:   "Controlled time",
+  cleared_time:      "Cleared time",
+  units_responding:  "Units responding",
+  personnel_on_scene:"Personnel",
+  narrative:         "Narrative",
+  actions_taken:     "Actions taken",
+  property_use:      "Property use",
+  casualty_civilian: "Civilian casualties",
+  casualty_ff:       "Firefighter casualties",
+};
+
+function SectionTag({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-3">
+      <div className="h-[2px] w-7 shrink-0 bg-[var(--signal)]" aria-hidden />
+      <p className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-[#4a4842]">
+        {children}
+      </p>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
@@ -233,6 +313,7 @@ export function IncidentForm({
   existingLocalId,
   initialData,
   draftId,
+  onBootstrapComplete,
   onSubmitSuccess,
   submitLabel = "Log incident",
 }: IncidentFormProps) {
@@ -266,13 +347,22 @@ export function IncidentForm({
   const [loadError,         setLoadError]         = useState<string | null>(null);
   const [saveError,         setSaveError]         = useState<string | null>(null);
   const [locationMessage,   setLocationMessage]   = useState<string | null>(null);
+  const [nerisDetailsOpen,   setNerisDetailsOpen]   = useState(false);
 
   const latestFormRef  = useRef(form);
   const draftDirtyRef  = useRef(draftDirty);
   const savedFlashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onBootstrapCompleteRef = useRef(onBootstrapComplete);
+  onBootstrapCompleteRef.current = onBootstrapComplete;
 
   useEffect(() => { latestFormRef.current = form; }, [form]);
   useEffect(() => { draftDirtyRef.current = draftDirty; }, [draftDirty]);
+
+  useEffect(() => {
+    if (!isBootstrapping) {
+      onBootstrapCompleteRef.current?.();
+    }
+  }, [isBootstrapping]);
 
   // Bootstrap
   useEffect(() => {
@@ -307,6 +397,7 @@ export function IncidentForm({
               exposures: typeof draft.raw_data.exposures === "string" ? draft.raw_data.exposures : "",
               actions_taken: readStringArray(draft.raw_data.actions_taken),
               property_use: typeof draft.raw_data.property_use === "string" ? draft.raw_data.property_use : "",
+              discipline_data: readDisciplineData(draft.raw_data as Record<string, unknown>),
             }));
             setDraftSavedAt(draft.updated_at);
           }
@@ -361,6 +452,7 @@ export function IncidentForm({
           exposures: snapshot.exposures,
           actions_taken: snapshot.actions_taken,
           property_use: snapshot.property_use || null,
+          discipline: snapshot.discipline_data,
         },
         updated_at: updatedAt,
       });
@@ -400,6 +492,20 @@ export function IncidentForm({
         setFieldErrors((prev) => ({ ...prev, location: err ?? undefined }));
       }
       return next;
+    });
+    setDraftDirty(true);
+    setSaveError(null);
+  }
+
+  function updateDisciplineField(field: string, value: unknown) {
+    setForm((current) => {
+      const nextDisc: Record<string, unknown> = { ...current.discipline_data };
+      if (value === undefined || value === "") {
+        delete nextDisc[field];
+      } else {
+        nextDisc[field] = value;
+      }
+      return { ...current, discipline_data: nextDisc };
     });
     setDraftDirty(true);
     setSaveError(null);
@@ -490,6 +596,38 @@ export function IncidentForm({
 
   const missingCount = Object.values(allErrors).filter(Boolean).length;
 
+  const nerisIssues = useMemo(
+    () =>
+      validateNerisReadiness({
+        incident_number: form.incident_number,
+        incident_type: form.incident_type,
+        location_address: form.location_address,
+        location_lat: form.location_lat,
+        location_lng: form.location_lng,
+        alarm_time: form.alarm_time,
+        dispatch_time: form.dispatch_time,
+        en_route_time: form.en_route_time,
+        on_scene_time: form.on_scene_time,
+        controlled_time: form.controlled_time,
+        cleared_time: form.cleared_time,
+        units_responding: form.units_responding,
+        personnel_on_scene: form.personnel_on_scene,
+        narrative: form.narrative,
+        actions_taken: form.actions_taken,
+        property_use: form.property_use,
+        casualty_civilian: form.civilian_casualties,
+        casualty_ff: form.firefighter_casualties,
+      }),
+    [form]
+  );
+
+  const nerisReadinessScore = nerisScore(nerisIssues);
+
+  const nerisIssuesThisStep = useMemo(
+    () => nerisIssues.filter((issue) => nerisIssueForStep(issue.field, currentStep)),
+    [nerisIssues, currentStep]
+  );
+
   function stepHasError(stepId: StepId): boolean {
     const requiredFields = STEP_REQUIRED[stepId];
     const hasFieldError = requiredFields.some(
@@ -565,6 +703,7 @@ export function IncidentForm({
             personnel_on_scene_names:  selectedPersonnel.map((m) => m.name),
             exposures:                 toIntOrNull(form.exposures),
             property_use:              form.property_use || null,
+            discipline:                form.discipline_data,
           },
         },
       });
@@ -635,18 +774,19 @@ export function IncidentForm({
                 >
                   <span
                     className={cn(
-                      "flex h-7 w-7 items-center justify-center font-mono text-[12px] transition-colors",
-                      isActive  && "bg-[var(--signal)] text-[var(--bone)]",
-                      isComplete && "bg-green-600 text-white",
-                      hasError   && "border border-[var(--signal)] text-[var(--signal)]",
+                      "flex h-8 w-8 shrink-0 items-center justify-center font-mono text-[13px] font-medium transition-colors",
+                      isActive   && "bg-[var(--signal)] text-[var(--bone)]",
+                      isComplete && "text-white",
+                      hasError   && "border border-[var(--signal)] bg-[rgba(200,54,44,0.08)] text-[var(--signal)]",
                       !isActive && !isComplete && !hasError && "border border-[#d6cfbf] text-[#4a4842]"
                     )}
+                    style={isComplete ? { backgroundColor: "var(--green)" } : undefined}
                   >
-                    {isComplete ? <Check className="h-3.5 w-3.5" /> : step.id}
+                    {isComplete ? <Check className="h-4 w-4" /> : step.id}
                   </span>
                   <span
                     className={cn(
-                      "hidden font-mono text-[9px] uppercase tracking-[0.14em] sm:block",
+                      "font-mono text-[9px] uppercase tracking-[0.14em]",
                       isActive   ? "text-[var(--ink)]" : "text-[#4a4842]",
                       hasError   && "text-[var(--signal)]"
                     )}
@@ -656,7 +796,7 @@ export function IncidentForm({
                 </button>
               </li>
               {!isLast && (
-                <div className="mx-2 h-px flex-1 bg-[#d6cfbf]" aria-hidden />
+                <div className="mx-2 h-[1.5px] flex-1 bg-[#d6cfbf]" aria-hidden />
               )}
             </Fragment>
           );
@@ -712,9 +852,7 @@ export function IncidentForm({
   const step2 = currentStep === 2 && (
     <div className="space-y-6">
       <div className="space-y-4">
-        <p className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-[#4a4842]">
-          Location <span className="text-[var(--signal)]">*</span>
-        </p>
+        <SectionTag>Location <span className="text-[var(--signal)]">*</span></SectionTag>
         <div className="space-y-2">
           <Label htmlFor="location-address">Address</Label>
           <Input
@@ -760,7 +898,7 @@ export function IncidentForm({
       </div>
 
       <div className="space-y-4 border-t border-[#d6cfbf] pt-6">
-        <p className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-[#4a4842]">Timeline</p>
+        <SectionTag>Timeline</SectionTag>
         <div className="grid gap-4 sm:grid-cols-2">
           {TIMELINE_ROWS.map(({ id, label, field, required }) => (
             <div key={id} className="space-y-2">
@@ -787,9 +925,7 @@ export function IncidentForm({
   const step3 = currentStep === 3 && (
     <div className="space-y-6">
       <div className="space-y-4">
-        <p className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-[#4a4842]">
-          Units responding <span className="text-[var(--signal)]">*</span>
-        </p>
+        <SectionTag>Units responding <span className="text-[var(--signal)]">*</span></SectionTag>
         <div className="grid gap-3 sm:grid-cols-2">
           {apparatusList.map((unit) => {
             const key      = apparatusKey(unit);
@@ -800,14 +936,19 @@ export function IncidentForm({
                 type="button"
                 onClick={() => toggleSelection("units_responding", key)}
                 className={cn(
-                  "min-h-[72px] border px-4 py-3.5 text-left transition-colors",
+                  "relative min-h-[72px] border px-4 py-3.5 text-left transition-colors",
                   selected
-                    ? "border-[var(--signal)] bg-[rgba(200,54,44,0.05)]"
+                    ? "border-[var(--signal)] bg-[rgba(200,54,44,0.08)]"
                     : fieldErrors.units_responding
                     ? "border-[var(--signal)]/40 hover:bg-[#ede8de]"
                     : "border-[#d6cfbf] hover:bg-[#ede8de]"
                 )}
               >
+                {selected && (
+                  <span className="absolute right-3 top-3 flex h-5 w-5 items-center justify-center bg-[var(--signal)] text-[var(--bone)]">
+                    <Check className="h-3 w-3" />
+                  </span>
+                )}
                 <div className="font-mono text-[13px] uppercase tracking-[0.08em] text-[var(--ink)]">{unit.unit_id ?? "Department apparatus"}</div>
                 <div className="mt-1 font-body text-[13px] text-[#4a4842]">
                   {[unit.type, unit.year].filter(Boolean).join(" • ") || "Department asset"}
@@ -820,7 +961,7 @@ export function IncidentForm({
       </div>
 
       <div className="space-y-4 border-t border-[#d6cfbf] pt-6">
-        <p className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-[#4a4842]">Personnel on scene</p>
+        <SectionTag>Personnel on scene</SectionTag>
         <div className="grid gap-3 sm:grid-cols-2">
           {rosterList.map((member) => {
             const selected = form.personnel_on_scene.includes(member.id);
@@ -830,10 +971,15 @@ export function IncidentForm({
                 type="button"
                 onClick={() => toggleSelection("personnel_on_scene", member.id)}
                 className={cn(
-                  "min-h-[72px] border border-[#d6cfbf] px-4 py-3.5 text-left transition-colors",
-                  selected ? "border-[var(--signal)] bg-[rgba(200,54,44,0.05)]" : "hover:bg-[#ede8de]"
+                  "relative min-h-[72px] border border-[#d6cfbf] px-4 py-3.5 text-left transition-colors",
+                  selected ? "border-[var(--signal)] bg-[rgba(200,54,44,0.08)]" : "hover:bg-[#ede8de]"
                 )}
               >
+                {selected && (
+                  <span className="absolute right-3 top-3 flex h-5 w-5 items-center justify-center bg-[var(--signal)] text-[var(--bone)]">
+                    <Check className="h-3 w-3" />
+                  </span>
+                )}
                 <div className="font-body font-medium text-[var(--ink)]">{member.name}</div>
                 <div className="mt-1 font-body text-[13px] text-[#4a4842]">
                   {[member.role, member.badge_number].filter(Boolean).join(" • ") || "Department responder"}
@@ -848,8 +994,13 @@ export function IncidentForm({
 
   const step4 = currentStep === 4 && (
     <div className="space-y-6">
+      <DisciplineFields
+        incidentType={form.incident_type}
+        values={form.discipline_data}
+        onChange={updateDisciplineField}
+      />
       <div className="space-y-4">
-        <p className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-[#4a4842]">Casualties</p>
+        <SectionTag>Casualties</SectionTag>
         <div className="grid gap-4 sm:grid-cols-3">
           <div className="space-y-2">
             <Label htmlFor="civilian-casualties">Civilian casualties</Label>
@@ -883,7 +1034,7 @@ export function IncidentForm({
       </div>
 
       <div className="space-y-4 border-t border-[#d6cfbf] pt-6">
-        <p className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-[#4a4842]">Property use</p>
+        <SectionTag>Property use</SectionTag>
         <select
           id="property-use"
           value={form.property_use}
@@ -898,7 +1049,7 @@ export function IncidentForm({
       </div>
 
       <div className="space-y-4 border-t border-[#d6cfbf] pt-6">
-        <p className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-[#4a4842]">Actions taken</p>
+        <SectionTag>Actions taken</SectionTag>
         <div className="flex flex-wrap gap-3">
           {ACTION_TAKEN_OPTIONS.map((opt) => {
             const selected = form.actions_taken.includes(opt.value);
@@ -908,8 +1059,10 @@ export function IncidentForm({
                 type="button"
                 onClick={() => toggleSelection("actions_taken", opt.value)}
                 className={cn(
-                  "min-h-[40px] border border-[#d6cfbf] px-4 py-2 font-body text-[14px] text-[var(--ink)] transition-colors",
-                  selected ? "border-[var(--signal)] bg-[rgba(200,54,44,0.05)]" : "hover:bg-[#ede8de]"
+                  "min-h-[40px] border px-4 py-2 font-body text-[14px] transition-colors",
+                  selected
+                    ? "border-[var(--signal)] bg-[var(--signal)] text-[var(--bone)]"
+                    : "border-[#d6cfbf] text-[var(--ink)] hover:bg-[#ede8de]"
                 )}
               >
                 {opt.label}
@@ -920,12 +1073,11 @@ export function IncidentForm({
       </div>
 
       <div className="space-y-4 border-t border-[#d6cfbf] pt-6">
-        <p className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-[#4a4842]">Narrative</p>
-        <Textarea
-          placeholder="Describe what happened: conditions on arrival, actions taken, outcomes, and any outstanding follow-up."
-          value={form.narrative}
-          onChange={(e) => updateForm("narrative", e.target.value)}
-          rows={5}
+        <SectionTag>Narrative</SectionTag>
+        <NarrativeBuilder
+          incidentType={form.incident_type}
+          narrative={form.narrative}
+          onChange={(v) => updateForm("narrative", v)}
         />
       </div>
     </div>
@@ -937,6 +1089,105 @@ export function IncidentForm({
 
   const isFirstStep = currentStep === 1;
   const isLastStep  = currentStep === 4;
+
+  const nerisBarFillColor =
+    nerisReadinessScore >= 80
+      ? "var(--green)"
+      : nerisReadinessScore >= 50
+        ? "var(--amber)"
+        : "var(--signal)";
+
+  const nerisStepErrors = nerisIssuesThisStep.filter((i) => i.severity === "error");
+  const nerisStepWarnings = nerisIssuesThisStep.filter((i) => i.severity === "warning");
+
+  const nerisReadinessBar = (
+    <div className="sticky bottom-0 z-10 -mx-px border-t border-[#d6cfbf] bg-[#f3eee5]/95 px-0 py-2 backdrop-blur-sm supports-[backdrop-filter]:bg-[#f3eee5]/88">
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center gap-3">
+          <div className="relative h-2.5 flex-1 overflow-hidden border border-[#d6cfbf] bg-[#ede8de]">
+            <div
+              className="h-full transition-[width] duration-300"
+              style={{ width: `${nerisReadinessScore}%`, backgroundColor: nerisBarFillColor }}
+              role="progressbar"
+              aria-valuenow={nerisReadinessScore}
+              aria-valuemin={0}
+              aria-valuemax={100}
+            />
+          </div>
+          <p className="shrink-0 font-mono text-[10px] uppercase tracking-[0.12em] text-[#4a4842]">
+            {nerisReadinessScore === 100 ? "NERIS Ready" : `NERIS ${nerisReadinessScore}%`}
+          </p>
+        </div>
+        {nerisIssuesThisStep.length > 0 ? (
+          <>
+            <button
+              type="button"
+              onClick={() => setNerisDetailsOpen((open) => !open)}
+              className="flex items-center gap-2 self-start font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--ink)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--signal)]"
+              aria-expanded={nerisDetailsOpen}
+            >
+              {nerisDetailsOpen ? (
+                <ChevronUp className="h-3.5 w-3.5" aria-hidden />
+              ) : (
+                <ChevronDown className="h-3.5 w-3.5" aria-hidden />
+              )}
+              <span>This step</span>
+              {nerisStepErrors.length > 0 && (
+                <span className="bg-[var(--signal)] px-1.5 py-px font-mono text-[9px] text-[var(--bone)]">
+                  {nerisStepErrors.length} error{nerisStepErrors.length !== 1 ? "s" : ""}
+                </span>
+              )}
+              {nerisStepWarnings.length > 0 && (
+                <span className="px-1.5 py-px font-mono text-[9px]" style={{ backgroundColor: "var(--amber)", color: "#3d2800" }}>
+                  {nerisStepWarnings.length} warning{nerisStepWarnings.length !== 1 ? "s" : ""}
+                </span>
+              )}
+            </button>
+            {nerisDetailsOpen ? (
+              <div className="max-h-40 space-y-3 overflow-y-auto border border-[#d6cfbf] bg-[#faf8f4] px-3 py-2">
+                {nerisStepErrors.length > 0 ? (
+                  <div>
+                    <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--signal)]">
+                      Errors
+                    </p>
+                    <ul className="mt-1 space-y-1.5 font-body text-[12px] text-[var(--ink)]">
+                      {nerisStepErrors.map((issue, idx) => (
+                        <li key={`e-${issue.field}-${idx}`}>
+                          <span className="font-mono text-[11px] text-[#4a4842]">
+                            {FIELD_LABELS[issue.field] ?? issue.field}
+                          </span>
+                          {" — "}
+                          {issue.message}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+                {nerisStepWarnings.length > 0 ? (
+                  <div>
+                    <p className="font-mono text-[9px] uppercase tracking-[0.14em]" style={{ color: "#7a4e00" }}>
+                      Warnings
+                    </p>
+                    <ul className="mt-1 space-y-1.5 font-body text-[12px] text-[var(--ink)]">
+                      {nerisStepWarnings.map((issue, idx) => (
+                        <li key={`w-${issue.field}-${idx}`}>
+                          <span className="font-mono text-[11px] text-[#4a4842]">
+                            {FIELD_LABELS[issue.field] ?? issue.field}
+                          </span>
+                          {" — "}
+                          {issue.message}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+          </>
+        ) : null}
+      </div>
+    </div>
+  );
 
   const actionBar = (
     <div className="flex items-center justify-between gap-3 border-t border-[#d6cfbf] pt-6">
@@ -1037,6 +1288,7 @@ export function IncidentForm({
         {step4}
       </div>
       {errorBanner}
+      {nerisReadinessBar}
       {actionBar}
     </form>
   );

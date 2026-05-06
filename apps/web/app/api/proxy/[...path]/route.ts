@@ -25,7 +25,7 @@ async function proxy(req: NextRequest, path: string[]) {
   if (authorization) headers.set("authorization", authorization);
 
   const init: RequestInit = { method, headers };
-  if (method !== "GET" && method !== "HEAD" && method !== "DELETE") {
+  if (method !== "GET" && method !== "HEAD") {
     init.body = await req.arrayBuffer();
   }
 

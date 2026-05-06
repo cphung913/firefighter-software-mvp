@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import DateTime, Float, ForeignKey, Index, Integer, String, Text, UniqueConstraint
+from sqlalchemy import DateTime, Float, ForeignKey, Index, Integer, String, Text, UniqueConstraint, text
 from sqlalchemy.dialects.postgresql import JSONB, UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -27,6 +27,9 @@ class Incident(Base, UUIDPKMixin, TimestampMixin):
 
     incident_number: Mapped[str | None] = mapped_column(String(64), nullable=True)
     incident_type: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    priority: Mapped[str | None] = mapped_column(
+        String(16), nullable=True, server_default=text("'medium'")
+    )
     location_address: Mapped[str | None] = mapped_column(String(512), nullable=True)
     location_lat: Mapped[float | None] = mapped_column(Float, nullable=True)
     location_lng: Mapped[float | None] = mapped_column(Float, nullable=True)
@@ -52,6 +55,15 @@ class Incident(Base, UUIDPKMixin, TimestampMixin):
     raw_data: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, default=dict)
 
     sync_status: Mapped[str] = mapped_column(String(32), nullable=False, default="pending")
+
+    report_status: Mapped[str] = mapped_column(String(32), nullable=False, default="draft")
+    reviewed_by: Mapped[uuid.UUID | None] = mapped_column(
+        PG_UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    review_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    neris_exported_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     created_by: Mapped[uuid.UUID | None] = mapped_column(
         PG_UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True

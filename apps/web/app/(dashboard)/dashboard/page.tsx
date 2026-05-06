@@ -1,11 +1,17 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import type { IncidentRecord } from "@/lib/db";
 import { db } from "@/lib/db";
 import { cn } from "@/lib/utils";
 import { apiFetch } from "@/lib/api/client";
+import {
+  fetchResponseTimeSummary,
+  formatSeconds,
+  type ResponseTimeSummary,
+} from "@/lib/analytics/api";
 import type { CalendarDay } from "@vfd/shared-types";
 
 // ─── Card primitives ──────────────────────────────────────────────────────────
@@ -527,7 +533,7 @@ function OnDutyCard() {
   const count = day?.on_duty.length ?? 0;
 
   return (
-    <Card tag="TODAY" className="col-span-12 xl:col-span-4">
+    <Card tag="TODAY" className="col-span-12 xl:col-span-3">
       <CardHead
         title="On Duty"
         meta={!loading ? `— ${count} PERSONNEL` : undefined}
@@ -635,7 +641,7 @@ function ExpiringCertsCard() {
   }
 
   return (
-    <Card tag="90 DAY" className="col-span-12 xl:col-span-4">
+    <Card tag="90 DAY" className="col-span-12 xl:col-span-3">
       <CardHead
         title="Cert Expirations"
         meta={list.length > 0 ? `— ${expiredCount} EXPIRED · ${soonCount} SOON` : undefined}
@@ -728,7 +734,7 @@ function TrainingComplianceCard() {
     .slice(0, 4);
 
   return (
-    <Card tag="YTD" className="col-span-12 xl:col-span-4">
+    <Card tag="YTD" className="col-span-12 xl:col-span-3">
       <CardHead title="Training Compliance" meta={`— ${totalDrills} DRILLS`} />
       <div className="flex flex-col gap-3.5 p-[18px]">
         <div className="flex items-baseline justify-between">
@@ -786,6 +792,102 @@ function TrainingComplianceCard() {
   );
 }
 
+// ─── ResponseTimeCard ─────────────────────────────────────────────────────────
+
+function ResponseTimeCard() {
+  const [summary, setSummary] = useState<ResponseTimeSummary | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchResponseTimeSummary(30)
+      .then(setSummary)
+      .catch(() => setSummary(null))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const compliancePct = summary?.nfpa_1720_compliance_pct ?? null;
+  const complianceTone =
+    compliancePct === null || Number.isNaN(compliancePct)
+      ? "var(--bone-dim)"
+      : compliancePct >= 80
+        ? "var(--green)"
+        : compliancePct >= 50
+          ? "var(--amber)"
+          : "var(--signal)";
+
+  const scored = summary?.incidents_with_response_data ?? 0;
+
+  return (
+    <Card
+      tag="LAST 30D"
+      className="col-span-12 xl:col-span-3"
+    >
+      <CardHead
+        title="Response Times"
+        meta={
+          loading
+            ? undefined
+            : summary
+              ? `— ${scored} SCORED`
+              : undefined
+        }
+      />
+      {loading ? (
+        <div className="flex items-center justify-center" style={{ padding: "28px 16px" }}>
+          <span className="font-mono text-[11px] tracking-[0.14em] uppercase" style={{ color: "#7a786f" }}>
+            Loading…
+          </span>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-3.5 p-[18px]">
+          <div className="grid grid-cols-3 gap-2">
+            <div className="flex flex-col gap-1">
+              <span className="font-display font-semibold text-[9px] tracking-[0.14em] uppercase" style={{ color: "#7a786f" }}>
+                Turnout
+              </span>
+              <span
+                className="font-mono text-[18px] leading-none tracking-[0.04em] text-[var(--bone)]"
+                style={{ fontVariantNumeric: "tabular-nums" }}
+              >
+                {formatSeconds(summary?.avg_turnout_seconds ?? null)}
+              </span>
+            </div>
+            <div className="flex flex-col gap-1">
+              <span className="font-display font-semibold text-[9px] tracking-[0.14em] uppercase" style={{ color: "#7a786f" }}>
+                Total rsp.
+              </span>
+              <span
+                className="font-mono text-[18px] leading-none tracking-[0.04em] text-[var(--bone)]"
+                style={{ fontVariantNumeric: "tabular-nums" }}
+              >
+                {formatSeconds(summary?.avg_total_response_seconds ?? null)}
+              </span>
+            </div>
+            <div className="flex flex-col gap-1">
+              <span className="font-display font-semibold text-[9px] tracking-[0.14em] uppercase" style={{ color: "#7a786f" }}>
+                NFPA 1720
+              </span>
+              <span
+                className="font-mono text-[18px] leading-none tracking-[0.04em]"
+                style={{ fontVariantNumeric: "tabular-nums", color: complianceTone }}
+              >
+                {compliancePct !== null ? `${compliancePct.toFixed(0)}%` : "—"}
+              </span>
+            </div>
+          </div>
+          <Link
+            href="/analytics"
+            className="font-display font-semibold text-[10px] tracking-[0.18em] uppercase hover:opacity-90"
+            style={{ color: "var(--blue)" }}
+          >
+            View Analytics →
+          </Link>
+        </div>
+      )}
+    </Card>
+  );
+}
+
 // ─── Page skeleton (SSR-safe) ─────────────────────────────────────────────────
 
 function PageSkeleton() {
@@ -831,6 +933,7 @@ export default function DashboardPage() {
         <OnDutyCard />
         <ExpiringCertsCard />
         <TrainingComplianceCard />
+        <ResponseTimeCard />
       </div>
     </div>
   );

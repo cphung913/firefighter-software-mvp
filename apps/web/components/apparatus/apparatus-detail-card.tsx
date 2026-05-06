@@ -6,32 +6,51 @@ import { db, type ApparatusRecord } from "@/lib/db";
 import { updateApparatusStatus } from "@/lib/assets/api";
 import { cn } from "@/lib/utils";
 
-type ServiceStatus = "available" | "responding" | "out_of_service";
+type ServiceStatus =
+  | "available"
+  | "responding"
+  | "on_scene"
+  | "transporting"
+  | "out_of_service";
 
 const SELECTABLE_STATUSES: ServiceStatus[] = ["available", "out_of_service"];
-const ALL_STATUSES: ServiceStatus[] = ["available", "responding", "out_of_service"];
+const ALL_STATUSES: ServiceStatus[] = [
+  "available",
+  "responding",
+  "on_scene",
+  "transporting",
+  "out_of_service",
+];
 
 const STATUS_LABEL: Record<ServiceStatus, string> = {
   available: "Available",
   responding: "Responding",
+  on_scene: "On Scene",
+  transporting: "Transporting",
   out_of_service: "Out of Service",
 };
 
 const STATUS_DOT: Record<ServiceStatus, string> = {
   available: "bg-green-500",
   responding: "bg-[var(--amber)]",
+  on_scene: "bg-teal-400",
+  transporting: "bg-purple-400",
   out_of_service: "bg-[var(--signal)]",
 };
 
 const STATUS_TEXT: Record<ServiceStatus, string> = {
   available: "text-green-400",
   responding: "text-[var(--amber)]",
+  on_scene: "text-teal-300",
+  transporting: "text-purple-300",
   out_of_service: "text-[var(--signal)]",
 };
 
 const STATUS_BUTTON_ACTIVE: Record<ServiceStatus, string> = {
   available: "border-green-500 text-green-400 bg-green-500/10",
   responding: "border-[var(--amber)] text-[var(--amber)] bg-[var(--amber)]/10",
+  on_scene: "border-teal-400 text-teal-300 bg-teal-400/10",
+  transporting: "border-purple-400 text-purple-300 bg-purple-400/10",
   out_of_service: "border-[var(--signal)] text-[var(--signal)] bg-[var(--signal)]/10",
 };
 
@@ -39,6 +58,10 @@ function normalizeStatus(value: string | undefined): ServiceStatus {
   return ALL_STATUSES.includes(value as ServiceStatus)
     ? (value as ServiceStatus)
     : "available";
+}
+
+function isDispatchLocked(status: ServiceStatus): boolean {
+  return status === "responding" || status === "on_scene" || status === "transporting";
 }
 
 interface Props {
@@ -150,10 +173,15 @@ export function ApparatusDetailCard({ unit, isOffline }: Props) {
           {/* Status controls */}
           <div className="space-y-2">
             <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--bone-dim)]">Status</p>
-            {status === "responding" ? (
+            {isDispatchLocked(status) ? (
               <div className="flex items-center gap-2.5">
-                <span className="border border-[var(--amber)] px-3 py-1.5 font-mono text-[10.5px] uppercase tracking-[0.14em] text-[var(--amber)] bg-[var(--amber)]/10">
-                  Responding
+                <span
+                  className={cn(
+                    "border px-3 py-1.5 font-mono text-[10.5px] uppercase tracking-[0.14em]",
+                    STATUS_BUTTON_ACTIVE[status]
+                  )}
+                >
+                  {STATUS_LABEL[status]}
                 </span>
                 <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-[var(--bone-dim)]">
                   Status locked — clear via dispatch

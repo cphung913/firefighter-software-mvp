@@ -54,6 +54,11 @@ PROTECTED_FIELDS = {
     "_sync_status",
     "_dirty_fields",
     "server_id",
+    "report_status",
+    "reviewed_by",
+    "reviewed_at",
+    "review_notes",
+    "neris_exported_at",
 }
 
 

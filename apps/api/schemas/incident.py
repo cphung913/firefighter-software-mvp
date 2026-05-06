@@ -27,6 +27,7 @@ class IncidentBootstrapResponse(BaseModel):
 class IncidentCreateRequest(BaseModel):
     local_id: str | None = None
     incident_type: str | None = None
+    priority: str | None = None
     location_address: str | None = None
     location_lat: float | None = None
     location_lng: float | None = None
@@ -44,6 +45,14 @@ class IncidentCreateRequest(BaseModel):
     actions_taken: list[str] | None = None
     property_use: str | None = None
     raw_data: dict[str, Any] | None = None
+
+
+class IncidentSubmitRequest(BaseModel):
+    """Optional body for submit-for-review; clients may POST {}."""
+
+
+class IncidentReviewRequest(BaseModel):
+    notes: str | None = None
 
 
 class IncidentUpdateRequest(BaseModel):
@@ -73,6 +82,7 @@ class IncidentOut(BaseModel):
     local_id: str | None
     incident_number: str | None
     incident_type: str | None
+    priority: str | None = None
     location_address: str | None
     location_lat: float | None
     location_lng: float | None
@@ -91,11 +101,27 @@ class IncidentOut(BaseModel):
     property_use: str | None
     raw_data: dict[str, Any]
     sync_status: str
+    report_status: str = "draft"
+    reviewed_by: uuid.UUID | None = None
+    reviewed_at: datetime | None = None
+    review_notes: str | None = None
+    neris_exported_at: datetime | None = None
     created_by: uuid.UUID | None
     created_at: datetime
     updated_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class BulkNerisExportRequest(BaseModel):
+    incident_ids: list[uuid.UUID]
+
+
+class BulkNerisExportResponse(BaseModel):
+    exported_count: int
+    skipped_count: int = 0
+    incidents: list[dict]
+    exported_at: str
 
 
 class TaxonomyOption(BaseModel):
